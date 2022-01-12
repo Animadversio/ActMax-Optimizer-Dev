@@ -13,11 +13,12 @@ import torch
 import torch.nn.functional as F
 from core.CNN_scorers import TorchScorer
 from core.GAN_utils import upconvGAN
-from Optimizers import HessAware_Gauss_DC, CholeskyCMAES
-
+from core.Optimizers import CholeskyCMAES # HessAware_Gauss_DC,
+default_init_sigma = 3.0
+default_Aupdate_freq = 10
 class ExperimentEvolution:
     def __init__(self, model_unit, max_step=100, imgsize=(227, 227), corner=(0, 0), optimizer=None,
-                 savedir="", explabel="", backend="torch", GAN="fc6"):
+                 savedir="", explabel="", GAN="fc6"):
         self.recording = []
         self.scores_all = []
         self.codes_all = []
@@ -27,12 +28,11 @@ class ExperimentEvolution:
         self.CNNmodel = TorchScorer(model_unit[0])
         self.CNNmodel.select_unit(model_unit)
         # Allow them to choose from multiple optimizers, substitute generator.visualize and render
-        if GAN == "fc6" or GAN == "fc7" or GAN == "fc8":
-
+        if GAN in ["fc6", "fc7", "fc8"]:
             self.G = upconvGAN(name=GAN).cuda()
             self.render_tsr = self.G.visualize_batch_np  # this output tensor
             self.render = self.G.render
-            self.code_length = self.G.codelen # 1000 "fc8" 4096 "fc6", "fc7"
+            self.code_length = self.G.codelen  # 1000 "fc8" 4096 "fc6", "fc7"
         elif GAN == "BigGAN":
             from BigGAN_Evolution import BigGAN_embed_render
             self.render = BigGAN_embed_render
@@ -40,8 +40,8 @@ class ExperimentEvolution:
         else:
             raise NotImplementedError
         if optimizer is None:
-            self.optimizer = CholeskyCMAES(self.code_length, population_size=None, init_sigma=init_sigma,
-                                       init_code=np.zeros([1, self.code_length]), Aupdate_freq=Aupdate_freq,
+            self.optimizer = CholeskyCMAES(self.code_length, population_size=None, init_sigma=default_init_sigma,
+                                       init_code=np.zeros([1, self.code_length]), Aupdate_freq=default_Aupdate_freq,
                                        maximize=True, random_seed=None, optim_params={})
         else:
             self.optimizer = optimizer
@@ -65,7 +65,6 @@ class ExperimentEvolution:
                     codes = np.zeros([1, self.code_length])
                 else:
                     codes = init_code
-            print('\n>>> step %d' % self.istep)
             t0 = time()
             self.current_images = self.render_tsr(codes)
             t1 = time()  # generate image from code
@@ -80,9 +79,9 @@ class ExperimentEvolution:
             self.generations = self.generations + [self.istep] * len(synscores)
             codes = codes_new
             # summarize scores & delays
-            print('synthetic img scores: mean {}, all {}'.format(np.nanmean(synscores), synscores))
-            print(('step %d time: total %.2fs | ' +
-                   'code visualize %.2fs  score %.2fs  optimizer step %.2fs')
+            print('synth img scores: mean {:.3f} +- std {:.3f}'.format(np.nanmean(synscores), np.nanstd(synscores)))
+            print(('step %d  time: total %.2fs | ' +
+                   'GAN visualize %.2fs   CNN score %.2fs   optimizer step %.2fs')
                   % (self.istep, t3 - t0, t1 - t0, t2 - t1, t3 - t2))
         self.codes_all = np.concatenate(tuple(self.codes_all), axis=0)
         self.scores_all = np.array(self.scores_all)
@@ -194,3 +193,13 @@ def resize_and_pad(img_list, size, offset, canvas_size=(227, 227), scale=1.0):
             pad_img[offset[0]:offset[0]+size[0], offset[1]:offset[1]+size[1], :] = resize(img, size, )#cv2.INTER_AREA)
             resize_img.append(pad_img.copy())
     return resize_img
+
+if __name__ == "__main__":
+    explabel, model_unit = "alexnet_fc8_1", ("alexnet", ".classifier.Linear6", 1)
+    explabel, model_unit = "vgg16_fc8_1", ("vgg16", ".classifier.Linear6", 1)
+    # explabel, model_unit = "densenet_fc1", ("densenet121", ".Linearclassifier", 1)
+    Exp = ExperimentEvolution(model_unit, savedir=r"E:\Cluster_Backup\Evol_tmp", explabel=explabel, )
+    Exp.run()
+    Exp.visualize_best()
+    Exp.visualize_trajectory()
+    Exp.save_last_gen()
