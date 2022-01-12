@@ -44,41 +44,42 @@ class TorchScorer:
         scores, activations = CNN.score(imgs)
 
     """
-    def __init__(self, model_name):
+    def __init__(self, model_name, imgpix=227, rawlayername=True):
+        self.imgpix = imgpix
         if model_name == "vgg16":
             self.model = models.vgg16(pretrained=True)
             self.layers = list(self.model.features) + list(self.model.classifier)
             # self.layername = layername_dict[model_name]
-            self.layername = None
+            self.layername = None if rawlayername else layername_dict["vgg16"]
             self.model.cuda().eval()
-            self.inputsize = (3, 227, 227)
+            self.inputsize = (3, imgpix, imgpix)
         elif model_name == "vgg16-face":
             self.model = models.vgg16(pretrained=False, num_classes=2622)
             self.model.load_state_dict(torch.load(join(torchhome, "vgg16_face.pt")))
             self.layers = list(self.model.features) + list(self.model.classifier)
-            self.layername = layername_dict["vgg16"]
+            self.layername = None if rawlayername else layername_dict["vgg16"]
             self.model.cuda().eval()
-            self.inputsize = (3, 227, 227)
+            self.inputsize = (3, imgpix, imgpix)
         elif model_name == "alexnet":
             self.model = models.alexnet(pretrained=True)
             self.layers = list(self.model.features) + list(self.model.classifier)
-            self.layername = layername_dict[model_name]
+            self.layername = None if rawlayername else layername_dict[model_name]
             self.model.cuda().eval()
-            self.inputsize = (3, 227, 227)
+            self.inputsize = (3, imgpix, imgpix)
         elif model_name == "densenet121":
             self.model = models.densenet121(pretrained=True)
             self.layers = list(self.model.features) + [self.model.classifier]
-            self.layername = layername_dict[model_name]
+            self.layername = None if rawlayername else layername_dict[model_name]
             self.model.cuda().eval()
-            self.inputsize = (3, 227, 227)
+            self.inputsize = (3, imgpix, imgpix)
         elif model_name == "densenet169":
             self.model = models.densenet169(pretrained=True)
             self.layername = None
             self.model.cuda().eval()
-            self.inputsize = (3, 227, 227)
+            self.inputsize = (3, imgpix, imgpix)
         elif model_name == "resnet101":
             self.model = models.resnet101(pretrained=True)
-            self.inputsize = (3, 227, 227)
+            self.inputsize = (3, imgpix, imgpix)
             self.layername = None
             self.model.cuda().eval()
         elif "resnet50" in model_name:
@@ -99,14 +100,14 @@ class TorchScorer:
                 elif model_name == "resnet50_l2_3_0":
                     self.model.load_state_dict(torch.load(join(torchhome, "imagenet_l2_3_0_pure.pt")))
             self.model.cuda().eval()
-            self.inputsize = (3, 227, 227)
+            self.inputsize = (3, imgpix, imgpix)
             self.layername = None
         elif model_name == "cornet_s":
             from cornet import cornet_s
             Cnet = cornet_s(pretrained=True)
             self.model = Cnet.module
             self.model.cuda().eval()
-            self.inputsize = (3, 227, 227)
+            self.inputsize = (3, imgpix, imgpix)
             self.layername = None
         else:
             raise NotImplementedError("Cannot find the specified model %s"%model_name)
@@ -230,24 +231,24 @@ class TorchScorer:
         if type(img) is list: # the following lines have been optimized for speed locally.
             img_tsr = torch.stack(tuple(torch.from_numpy(im) for im in img)).cuda().float().permute(0, 3, 1, 2) / input_scale
             img_tsr = (img_tsr - self.RGBmean) / self.RGBstd
-            resz_out_tsr = F.interpolate(img_tsr, (227, 227), mode='bilinear',
+            resz_out_tsr = F.interpolate(img_tsr, (self.imgpix, self.imgpix), mode='bilinear',
                                          align_corners=True)
             return resz_out_tsr
         elif type(img) is torch.Tensor:
             img_tsr = (img.cuda() / input_scale - self.RGBmean) / self.RGBstd
-            resz_out_tsr = F.interpolate(img_tsr, (227, 227), mode='bilinear',
+            resz_out_tsr = F.interpolate(img_tsr, (self.imgpix, self.imgpix), mode='bilinear',
                                          align_corners=True)
             return resz_out_tsr
         elif type(img) is np.ndarray and img.ndim == 4:
             img_tsr = torch.tensor(img / input_scale).float().permute(0,3,1,2).cuda()
             img_tsr = (img_tsr - self.RGBmean) / self.RGBstd
-            resz_out_tsr = F.interpolate(img_tsr, (227, 227), mode='bilinear',
+            resz_out_tsr = F.interpolate(img_tsr, (self.imgpix, self.imgpix), mode='bilinear',
                                          align_corners=True)
             return resz_out_tsr
         elif type(img) is np.ndarray and img.ndim in [2, 3]:  # assume it's individual image
             img_tsr = transforms.ToTensor()(img / input_scale).float()
             img_tsr = self.normalize(img_tsr).unsqueeze(0)
-            resz_out_img = F.interpolate(img_tsr, (227, 227), mode='bilinear',
+            resz_out_img = F.interpolate(img_tsr, (self.imgpix, self.imgpix), mode='bilinear',
                                          align_corners=True)
             return resz_out_img
         else:
@@ -263,9 +264,7 @@ class TorchScorer:
         while csr < imgn:
             csr_end = min(csr + B, imgn)
             img_batch = self.preprocess(images[csr:csr_end], input_scale=input_scale)
-            # img_batch.append(resz_out_img)
             with torch.no_grad():
-                # self.model(torch.cat(img_batch).cuda())
                 self.model(img_batch)
             if "score" in self.activation: # if score is not there set trace to zero. 
                 scores[csr:csr_end] = self.activation["score"].squeeze().cpu().numpy().squeeze()
@@ -298,9 +297,7 @@ class TorchScorer:
         while csr < imgn:
             csr_end = min(csr + B, imgn)
             img_batch = self.preprocess(img_tsr[csr:csr_end,:,:,:], input_scale=input_scale)
-            # img_batch.append(resz_out_img)
             with torch.no_grad():
-                # self.model(torch.cat(img_batch).cuda())
                 self.model(img_batch.cuda())
             if "score" in self.activation: # if score is not there set trace to zero. 
                 scores[csr:csr_end] = self.activation["score"].squeeze().cpu().numpy().squeeze()
@@ -333,7 +330,6 @@ class TorchScorer:
             if self.artiphys:  # record the whole neurlayer's activation
                 for layer in self.record_layers:
                     score_full = self.activation[layer]
-                    # self._pattern_array.append(score_full)
                     self.recordings[layer].append(score_full.cpu().numpy())
 
             csr = csr_end
