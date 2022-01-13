@@ -17,7 +17,7 @@ import torch.nn as nn
 from PIL import Image
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
-from build_montages import build_montages
+from core.build_montages import build_montages
 
 load_urls = False
 if platform == "linux":  # CHPC cluster
