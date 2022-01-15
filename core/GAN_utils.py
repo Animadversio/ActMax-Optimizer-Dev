@@ -25,8 +25,10 @@ if platform == "linux":  # CHPC cluster
     # netsdir = os.path.join(homedir, 'Generate_DB/nets')
     # homedir = "/scratch/binxu"
     # netsdir = "/scratch/binxu/torch/checkpoints"
-    homedir = "/scratch1/fs1/crponce"
-    netsdir = "/scratch1/fs1/crponce/torch/checkpoints"
+    # homedir = "/scratch1/fs1/crponce"
+    # netsdir = "/scratch1/fs1/crponce/torch/checkpoints"
+    homedir = os.environ["SCRATCH1"]
+    netsdir = join(homedir, "torch/checkpoints")  # CHPC
     load_urls = True # note it will try to load from $TORCH_HOME\checkpoints\"upconvGAN_%s.pt"%"fc6"
     # ckpt_path = {"vgg16": "/scratch/binxu/torch/vgg16-397923af.pth"}
 else:
@@ -250,7 +252,7 @@ def visualize_np(G, code, layout=None, show=True):
 def loadBigGAN(version="biggan-deep-256"):
     from pytorch_pretrained_biggan import BigGAN, BigGANConfig
     if platform == "linux":
-        cache_path = "/scratch/binxu/torch/"
+        cache_path = netsdir # "/scratch/binxu/torch/"
         cfg = BigGANConfig.from_json_file(join(cache_path, "%s-config.json" % version))
         BGAN = BigGAN(cfg)
         BGAN.load_state_dict(torch.load(join(cache_path, "%s-pytorch_model.bin" % version)))
