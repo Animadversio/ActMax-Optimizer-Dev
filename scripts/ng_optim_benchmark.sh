@@ -8,7 +8,6 @@
 #BSUB -R 'select[mem>20G]'
 #BSUB -R 'rusage[mem=20GB]'
 #BSUB -M 20G
-#BSUB -N
 #BSUB -u binxu.wang@wustl.edu
 #BSUB -o  /scratch1/fs1/crponce/ng_benchmark.%J.%I
 #BSUB -a 'docker(pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.9)'
