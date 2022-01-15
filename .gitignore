@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+optim_log/*
 .idea/*
 
 # C extensions
