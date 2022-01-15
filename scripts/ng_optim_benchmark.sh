@@ -14,7 +14,7 @@
 
 echo "$LSB_JOBINDEX"
 
-export TORCH_HOME="/scratch/binxu/torch"
+export TORCH_HOME="/scratch1/fs1/crponce/torch"
 #export LSF_DOCKER_SHM_SIZE=16g
 #export LSF_DOCKER_VOLUMES="$HOME:$HOME $SCRATCH1:$SCRATCH1 $STORAGE1:$STORAGE1"
 param_list='--units alexnet .features.ReLU4 1 --chan_rng 0 10 --rep 5 --feval 3000
@@ -33,7 +33,6 @@ param_list='--units alexnet .features.ReLU4 1 --chan_rng 0 10 --rep 5 --feval 30
 --units alexnet .classifier.ReLU2 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000
 --units alexnet .classifier.Linear6 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000
 '
-
 #--units alexnet .features.ReLU4 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000 conv2
 #--units alexnet .features.ReLU7 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000 conv3
 #--units alexnet .features.ReLU9 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000 conv4
