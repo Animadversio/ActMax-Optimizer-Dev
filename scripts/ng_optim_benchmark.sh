@@ -2,7 +2,7 @@
 #BSUB -n 2
 #BSUB -q general
 #BSUB -G compute-crponce
-#BSUB -J 'ng_benchmark[1-15]'
+#BSUB -J 'ng_benchmark[1-3,6-8,11-13]'
 #BSUB -gpu "num=1:gmodel=TeslaV100_SXM2_32GB:mode=exclusive_process"
 #BSUB -R 'gpuhost'
 #BSUB -R 'select[mem>20G]'
@@ -17,21 +17,21 @@ echo "$LSB_JOBINDEX"
 export TORCH_HOME="/scratch1/fs1/crponce/torch"
 #export LSF_DOCKER_SHM_SIZE=16g
 #export LSF_DOCKER_VOLUMES="$HOME:$HOME $SCRATCH1:$SCRATCH1 $STORAGE1:$STORAGE1"
-param_list='--units alexnet .features.ReLU4 1 --chan_rng 0 10 --rep 5 --feval 3000
---units alexnet .features.ReLU7 1 --chan_rng 0 10 --rep 5 --feval 3000
---units alexnet .features.ReLU11 1 --chan_rng 0 10 --rep 5 --feval 3000
---units alexnet .classifier.ReLU2 1 --chan_rng 0 10 --rep 5 --feval 3000
---units alexnet .classifier.Linear6 1 --chan_rng 0 10 --rep 5 --feval 3000
---units alexnet .features.ReLU4 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.2 --feval 3000
---units alexnet .features.ReLU7 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.2 --feval 3000
---units alexnet .features.ReLU11 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.2 --feval 3000
---units alexnet .classifier.ReLU2 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.2 --feval 3000
---units alexnet .classifier.Linear6 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.2 --feval 3000
---units alexnet .features.ReLU4 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000
---units alexnet .features.ReLU7 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000
---units alexnet .features.ReLU11 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000
---units alexnet .classifier.ReLU2 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000
---units alexnet .classifier.Linear6 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000
+param_list='--units alexnet .features.ReLU4 1 13 13  --chan_rng 0 10 --rep 5 --feval 3000
+--units alexnet .features.ReLU7 1 6 6  --chan_rng 0 10 --rep 5 --feval 3000
+--units alexnet .features.ReLU11 1 6 6  --chan_rng 0 10 --rep 5 --feval 3000
+--units alexnet .classifier.ReLU2 1  --chan_rng 0 10 --rep 5 --feval 3000
+--units alexnet .classifier.Linear6 1  --chan_rng 0 10 --rep 5 --feval 3000
+--units alexnet .features.ReLU4 1 13 13  --chan_rng 0 10 --rep 5 --noise_lvl 0.2 --feval 3000
+--units alexnet .features.ReLU7 1 6 6  --chan_rng 0 10 --rep 5 --noise_lvl 0.2 --feval 3000
+--units alexnet .features.ReLU11 1 6 6  --chan_rng 0 10 --rep 5 --noise_lvl 0.2 --feval 3000
+--units alexnet .classifier.ReLU2 1  --chan_rng 0 10 --rep 5 --noise_lvl 0.2 --feval 3000
+--units alexnet .classifier.Linear6 1  --chan_rng 0 10 --rep 5 --noise_lvl 0.2 --feval 3000
+--units alexnet .features.ReLU4 1 13 13  --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000
+--units alexnet .features.ReLU7 1 6 6  --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000
+--units alexnet .features.ReLU11 1 6 6  --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000
+--units alexnet .classifier.ReLU2 1  --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000
+--units alexnet .classifier.Linear6 1  --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000
 '
 #--units alexnet .features.ReLU4 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000 conv2
 #--units alexnet .features.ReLU7 1 --chan_rng 0 10 --rep 5 --noise_lvl 0.5 --feval 3000 conv3
