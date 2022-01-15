@@ -23,8 +23,10 @@ load_urls = False
 if platform == "linux":  # CHPC cluster
     # homedir = os.path.expanduser('~')
     # netsdir = os.path.join(homedir, 'Generate_DB/nets')
-    homedir = "/scratch/binxu"
-    netsdir = "/scratch/binxu/torch/checkpoints"
+    # homedir = "/scratch/binxu"
+    # netsdir = "/scratch/binxu/torch/checkpoints"
+    homedir = "/scratch1/fs1/crponce"
+    netsdir = "/scratch1/fs1/crponce/torch/checkpoints"
     load_urls = True # note it will try to load from $TORCH_HOME\checkpoints\"upconvGAN_%s.pt"%"fc6"
     # ckpt_path = {"vgg16": "/scratch/binxu/torch/vgg16-397923af.pth"}
 else:
