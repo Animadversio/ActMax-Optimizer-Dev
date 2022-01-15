@@ -7,7 +7,7 @@
 #BSUB -R 'gpuhost'
 #BSUB -R 'select[mem>20G]'
 #BSUB -R 'rusage[mem=20GB]'
-#BSUB -M 20G
+#BSUB -M 16G
 #BSUB -u binxu.wang@wustl.edu
 #BSUB -o  /scratch1/fs1/crponce/ng_benchmark.%J.%I
 #BSUB -a 'docker(pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.9)'
@@ -15,7 +15,8 @@
 echo "$LSB_JOBINDEX"
 
 export TORCH_HOME="/scratch/binxu/torch"
-
+#export LSF_DOCKER_SHM_SIZE=16g
+#export LSF_DOCKER_VOLUMES="$HOME:$HOME $SCRATCH1:$SCRATCH1 $STORAGE1:$STORAGE1"
 param_list='--units alexnet .features.ReLU4 1 --chan_rng 0 10 --rep 5 --feval 3000
 --units alexnet .features.ReLU7 1 --chan_rng 0 10 --rep 5 --feval 3000
 --units alexnet .features.ReLU11 1 --chan_rng 0 10 --rep 5 --feval 3000
