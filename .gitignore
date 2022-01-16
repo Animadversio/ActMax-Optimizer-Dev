@@ -1,0 +1,5 @@
+__pycache__/
+.idea/*
+core/__pycache__/*
+outcmaes/*
+report.log
