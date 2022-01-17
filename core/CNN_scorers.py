@@ -22,7 +22,7 @@ from core.layer_hook_utils import layername_dict, register_hook_by_module_names,
 if platform == "linux": # cluster
     # torchhome = "/scratch/binxu/torch/checkpoints"  # CHPC
     scratchdir = os.environ["SCRATCH1"]
-    torchhome = join(scratchdir, "torch/checkpoints")  # CHPC
+    torchhome = join(scratchdir, "torch/checkpoints")  # RIS
 else:
     if os.environ['COMPUTERNAME'] == 'DESKTOP-9DDE2RH':  # PonceLab-Desktop 3
         torchhome = r"E:\Cluster_Backup\torch"
