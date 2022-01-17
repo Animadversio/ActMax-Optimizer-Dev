@@ -87,8 +87,8 @@ def add_noise(clean_score, noise_level):
         noise_gain = np.maximum(0, 1 + noise_level * np.random.randn(*clean_score.shape))
         return clean_score * noise_gain
 #%%
-rootdir = r"D:\Github\ActMax-Optimizer-Dev\optim_log"
-# rootdir = "/scratch1/fs1/crponce/ng_optim_cmp"
+# rootdir = r"D:\Github\ActMax-Optimizer-Dev\optim_log"
+rootdir = "/scratch1/fs1/crponce/ng_optim_cmp"
 optimlist = ["Genetic", "CholeskyCMAES", "pycma", "pycmaDiagonal", "ZOHA_Sphere_exp", "ZOHA_Sphere_inv"]#
 G = upconvGAN("fc6")
 G.eval().cuda()
@@ -103,6 +103,8 @@ for channel in range(chan_rng[0], chan_rng[1]):
         unit_lab = "%s_%s_%03d" % (netname, unit[1], unit[2])
     else:
         raise ValueError
+    if noise_level > 0:
+        unit_lab = unit_lab + "_ns%.1f" % noise_level
 
     savedir = join(rootdir, unit_lab)
     os.makedirs(savedir, exist_ok=True)
@@ -146,7 +148,7 @@ for channel in range(chan_rng[0], chan_rng[1]):
             bestcode = codes.mean(axis=0)
             runtime = t1 - t0
             summarystr = f"{optimname} took {t1-t0:.3f} sec, code norm {final_norm:.2f} \n score max {scores_all.max():.3f}, final mean {scores.mean():.3f},\n"+\
-                         f"clean score max {cleanscores_all.max():.3f}, final mean {cleanscores.mean():.3f}.\n"
+                         f"clean score max {cleanscores_all.max():.3f}, clean score final mean {cleanscores.mean():.3f}.\n\n"
             print(summarystr, end="")
             log_file.write(summarystr)
             optim_log_dict[optimname] = EasyDict(maxobj=scores_all.max(), bestcode=bestcode,
