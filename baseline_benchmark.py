@@ -1,5 +1,4 @@
 import cma
-# import pyswarms as ps
 import nevergrad as ng
 import torch
 import numpy as np
@@ -44,6 +43,8 @@ else:
 #%%
 G = upconvGAN("fc6")
 G.eval().cuda()
+G.requires_grad_(False)
+
 instrum = ng.p.Instrumentation(ng.p.Array(shape=(4096,)).set_bounds(-6, 6),)
 
 #%%
