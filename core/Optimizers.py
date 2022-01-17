@@ -15,8 +15,12 @@ class nevergrad_optimizer():
 
 
 class pycma_optimizer:
-    def __init__(self, spacedimen, sigma0, x0=None, inopts=None, maximize=True,):
-        if inopts is None: inopts = {}
+    """ wrapper of cma optimizer implemented in py cmaes package"""
+    def __init__(self, spacedimen, population_size=None, sigma0=1.0, x0=None, inopts=None, maximize=True,):
+        if inopts is None: 
+            inopts = {}
+        if population_size is not None: 
+            inopts["popsize"] = population_size
         if x0 is None:
             x0 = [0.0 for _ in range(spacedimen)]
         self.es = cma.CMAEvolutionStrategy(x0, sigma0, inopts=inopts)
@@ -25,7 +29,7 @@ class pycma_optimizer:
     def get_init_pop(self):
         return self.es.ask()
 
-    def step_simple(self, scores, codes):
+    def step_simple(self, scores, codes, verbosity=1):
         if self.maximize:
             scores = - scores
         self.es.tell(codes, scores)
@@ -96,7 +100,7 @@ class CholeskyCMAES:
     def get_init_pop(self):
         return self.init_x
 
-    def step_simple(self, scores, codes):
+    def step_simple(self, scores, codes, verbosity=1):
         """ Taking scores and codes to return new codes, without generating images
         Used in cases when the images are better handled in outer objects like Experiment object
         """
@@ -131,7 +135,7 @@ class CholeskyCMAES:
             # Adapt step size sigma
             sigma = sigma * exp((cs / damps) * (norm(ps) / chiN - 1))
             # self.sigma = self.sigma * exp((self.cs / self.damps) * (norm(ps) / self.chiN - 1))
-            print("sigma: %.2f" % sigma)
+            if verbosity: print("sigma: %.2f" % sigma)
             # Update A and Ainv with search path
             if self.counteval - self.eigeneval > self.update_crit:  # to achieve O(N ^ 2) do decomposition less frequently
                 self.eigeneval = self.counteval
@@ -216,12 +220,14 @@ class ZOHA_Sphere_lr_euclid:
             elif mode == "exp":
                 self.mulist = logspace(log10(self.mu_init), log10(self.mu_final), n_gen) / 180 * np.pi / sqrt(self.dimen)
 
-    def step_simple(self, scores, codes):
+    def step_simple(self, scores, codes, verbosity=1):
         N = self.dimen;
-        print('Gen %d max score %.3f, mean %.3f, std %.3f\n ' %(self.istep, max(scores), mean(scores), std(scores) ))
+        if verbosity:
+            print('Gen %d max score %.3f, mean %.3f, std %.3f\n ' %(self.istep, max(scores), mean(scores), std(scores) ))
         if self.istep == -1:
-        # Population Initialization: if without initialization, the first xmean is evaluated from weighted average all the natural images
-            print('First generation')
+            # Population Initialization: if without initialization, the first xmean is evaluated from weighted average all the natural images
+            if verbosity:
+                print('First generation')
             self.xcur = codes[0:1, :]
             if not self.rankweight: # use the score difference as weight
                 # B normalizer should go here larger cohort of codes gives more estimates
@@ -263,9 +269,10 @@ class ZOHA_Sphere_lr_euclid:
             w_mean = weights[np.newaxis,:] @ codes # mean in the euclidean space
             w_mean = w_mean / norm(w_mean) * self.sphere_norm # rescale, project it back to shell.
             self.xnew = SLERP(self.xcur, w_mean, self.lr) # use lr to spherical extrapolate
-            print("Step size %.3f, multip learning rate %.3f, " % (ang_dist(self.xcur, self.xnew), ang_dist(self.xcur, self.xnew) * self.lr));
             ang_basis_to_samp = ang_dist(codes, self.xnew)
-            print("New basis ang to last samples mean %.3f(%.3f), min %.3f" % (mean(ang_basis_to_samp), std(ang_basis_to_samp), min(ang_basis_to_samp)));
+            if verbosity:
+                print("Step size %.3f, multip learning rate %.3f, " % (ang_dist(self.xcur, self.xnew), ang_dist(self.xcur, self.xnew) * self.lr));
+                print("New basis ang to last samples mean %.3f(%.3f), min %.3f" % (mean(ang_basis_to_samp), std(ang_basis_to_samp), min(ang_basis_to_samp)));
 
         # Generate new sample by sampling from Gaussian distribution
         self.tang_codes = zeros((self.B, N))  # Tangent vectors of exploration
@@ -277,7 +284,8 @@ class ZOHA_Sphere_lr_euclid:
         new_samples[0, :] = self.xnew
         self.tang_codes = mu * self.outerV # m + sig * Normal(0,C)
         new_samples[1:, :] = ExpMap(self.xnew, self.tang_codes)
-        print("Current Exploration %.1f deg" % (mu * sqrt(self.dimen - 1) / np.pi * 180))
+        if verbosity:
+            print("Current Exploration %.1f deg" % (mu * sqrt(self.dimen - 1) / np.pi * 180))
         # new_ids = [];
         # for k in range(new_samples.shape[0]):
         #     new_ids = [new_ids, sprintf("gen%03d_%06d", self.istep+1, self.counteval)];
@@ -375,7 +383,7 @@ class Genetic():
     def get_init_pop(self):
         return self._init_population
 
-    def step_simple(self, scores, codes):
+    def step_simple(self, scores, codes, verbosity=1):
         """ Taking scores and codes from outside to return new codes,
         without generating images
         Used in cases when the images are better handled in outer objects like Experiment object
@@ -400,7 +408,7 @@ class Genetic():
         # if some images have scores
         valid_scores = scores[valid_mask]
         self._kT = max((np.std(valid_scores) * self._kT_mul, 1e-8))  # prevents underflow kT = 0
-        print('kT: %f' % self._kT)
+        if verbosity: print('kT: %f' % self._kT)
         sort_order = np.argsort(valid_scores)[::-1]  # sort from high to low
         valid_scores = valid_scores[sort_order]
         # Note: if new_size is smalled than n_valid, low ranking images will be lost
