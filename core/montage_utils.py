@@ -1,6 +1,8 @@
 import numpy as np
 from skimage.transform import resize
 import matplotlib.pylab as plt
+from torchvision.utils import make_grid
+from torchvision.transforms import ToPILImage, ToTensor
 
 def build_montages(image_list, image_shape, montage_shape, transpose=True):
     """Adapted from imutils.build_montages   add automatic normalization in it.
