@@ -88,7 +88,7 @@ def add_noise(clean_score, noise_level):
         return clean_score * noise_gain
 #%%
 # rootdir = r"D:\Github\ActMax-Optimizer-Dev\optim_log"
-rootdir = "/scratch1/fs1/crponce/ng_optim_cmp"
+rootdir = "/scratch1/fs1/crponce/cma_optim_cmp"
 optimlist = ["Genetic", "CholeskyCMAES", "pycma", "pycmaDiagonal", "ZOHA_Sphere_exp", "ZOHA_Sphere_inv"]#
 G = upconvGAN("fc6")
 G.eval().cuda()
