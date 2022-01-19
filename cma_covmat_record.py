@@ -1,7 +1,7 @@
 """Benchmark code for comparing the cma es algorithm and the ones implemnted by us and Genetic Algorithm"""
 
-import nevergrad as ng
 import os
+import sys
 from os.path import join
 import torch
 import numpy as np
@@ -12,7 +12,6 @@ from core.CNN_scorers import TorchScorer
 from time import time
 import warnings
 import cma
-from core.Optimizers import CholeskyCMAES, Genetic
 from argparse import ArgumentParser
 warnings.simplefilter("ignore", cma.evolution_strategy.InjectionWarning)
 #%%
@@ -121,8 +120,11 @@ def covmat_calc_stats(D2, eigvecs, covmat):
     summarystr = "Max 1 + %.3e  Min 1 - %.4e  Condition %.4e\nDistance to identity %.5e" % (maxeig - 1, 1 - mineig, condnum, devi2id)
     return EasyDict(maxeig=maxeig, mineig=mineig, condnum=condnum, devi2id=devi2id), summarystr
 #%%
-rootdir = r"D:\Github\ActMax-Optimizer-Dev\optim_log2"
-# rootdir = "/scratch1/fs1/crponce/cma_optim_covmat"
+if sys.platform == "linux":
+    rootdir = "/scratch1/fs1/crponce/cma_optim_covmat"
+else:
+    rootdir = r"D:\Github\ActMax-Optimizer-Dev\optim_log2"
+
 os.makedirs(rootdir, exist_ok=True)
 optimlist = ["CholeskyCMAES", "CholeskyCMAES_Aupdate1", "pycma", "pycmaDiagonal"]
 G = upconvGAN("fc6")
