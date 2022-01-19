@@ -18,6 +18,7 @@ pd.options.display.max_colwidth=200
 #%%
 def load_format_data_cma(Droot, sumdir="summary"):
     maxobj_col = []
+    cleanobj_col = []
     runtime_col = []
     codenorm_col = []
     subdirs = os.listdir(Droot)
@@ -53,27 +54,36 @@ def load_format_data_cma(Droot, sumdir="summary"):
             if "CholeskyCMAES" not in data:
                 continue
             maxobj_data = {k: subd["maxobj"] for k, subd in data.items()}
+            cleanobj_data = {k: subd["cleanscores_all"].max() for k, subd in data.items()}
             runtime_data = {k: subd["runtime"] for k, subd in data.items()}
             codenorm_data = {k: subd["codenorm"] for k, subd in data.items()}
             maxobj_data.update(expmeta)
+            cleanobj_data.update(expmeta)
             runtime_data.update(expmeta)
             codenorm_data.update(expmeta)
             maxobj_col.append(maxobj_data)
+            cleanobj_col.append(cleanobj_data)
             runtime_col.append(runtime_data)
             codenorm_col.append(codenorm_data)
             optimlist = [*data.keys()]
 
     maxobj_df = pd.DataFrame(maxobj_col)
+    cleanobj_df = pd.DataFrame(cleanobj_col)
     runtime_df = pd.DataFrame(runtime_col)
     codenorm_df = pd.DataFrame(codenorm_col)
     maxobj_df.to_csv(join(sumdir, "CMA_benchmark_maxobj_summary.csv"))
+    cleanobj_df.to_csv(join(sumdir, "CMA_benchmark_cleanobj_summary.csv"))
     runtime_df.to_csv(join(sumdir, "CMA_benchmark_runtime_summary.csv"))
     codenorm_df.to_csv(join(sumdir, "CMA_benchmark_codenorm_summary.csv"))
-    return maxobj_df, runtime_df, codenorm_df, optimlist
+    return maxobj_df, cleanobj_df, runtime_df, codenorm_df, optimlist
 
 dataroot = r"E:\Cluster_Backup\cma_optim_cmp"
-maxobj_df, runtime_df, codenorm_df, optimlist = load_format_data_cma(dataroot, sumdir="summary")
+maxobj_df, cleanobj_df, runtime_df, codenorm_df, optimlist = load_format_data_cma(dataroot, sumdir="summary")
 #%%
 maxobj_df[optimlist].describe()
 #%%
-runtime_df[optimlist].describe()
+cleanobj_df[optimlist].describe()
+#%%
+maxobj_df[optimlist].divide(maxobj_df[optimlist].mean(axis=1), axis=0).describe()
+#%%
+runtime_df[optimlist].describe(include=["sem"])
