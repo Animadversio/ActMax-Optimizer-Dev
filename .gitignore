@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 optim_log/*
+optim_log2/*
 .idea/*
 
 # C extensions
