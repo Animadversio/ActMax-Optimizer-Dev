@@ -90,7 +90,7 @@ for repi in range(repitition):
             #     cleanscores = scorer.score(G.visualize(torch.tensor(
             #         codes, dtype=torch.float32, device="cuda"))) #.reshape([-1,4096])
             # scores = add_noise(cleanscores, noise_level)
-            scores = np.random.randn(popsize)
+            scores = np.random.randn(codes.reshape([-1, 4096]).shape[0])
             newcodes = optim.step_simple(scores, codes, verbosity=0)
             scores_col.append(scores)
             codes_col.append(codes)
