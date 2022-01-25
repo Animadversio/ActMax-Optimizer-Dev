@@ -1,3 +1,6 @@
+"""
+Analysis script for comparing performance of different CMA algorithms.
+"""
 import os
 import re
 from os.path import join
@@ -79,11 +82,120 @@ def load_format_data_cma(Droot, sumdir="summary"):
 
 dataroot = r"E:\Cluster_Backup\cma_optim_cmp"
 maxobj_df, cleanobj_df, runtime_df, codenorm_df, optimlist = load_format_data_cma(dataroot, sumdir="summary")
+
+#%% Create the normalized clean score dataframe
+normobj_df = cleanobj_df.copy()
+layers = sorted(cleanobj_df.layershortname.unique())
+for layer in layers:
+    for channum in cleanobj_df.channum.unique():
+        msk = (cleanobj_df.layershortname == layer)\
+            & (cleanobj_df.channum == channum)
+        subtb = cleanobj_df[msk]
+        normalizer = subtb[optimlist].max().max()
+        # normalize to the highest clean score ever achieved for this unit
+        normobj_df.loc[msk, optimlist] = normobj_df.loc[msk, optimlist] / normalizer
+#%%
+normobj_df.to_csv(join("summary", "CMA_benchmark_normcleanobj_summary.csv"))
 #%%
 maxobj_df[optimlist].describe()
 #%%
-cleanobj_df[optimlist].describe()
+cleanobj_df[optimlist][cleanobj_df.noise_level==0.0].describe().T
+cleanobj_df[optimlist][cleanobj_df.noise_level==0.2].describe().T
+cleanobj_df[optimlist][cleanobj_df.noise_level==0.5].describe().T
+#%% Summarize the layer-wise activations
+layerrenamedict = { '.features.ReLU4':"conv2",
+                    '.features.ReLU7':"conv3",
+                    '.features.ReLU9':"conv4",
+                    '.features.ReLU11':"conv5",
+                    '.classifier.ReLU5':"fc6",
+                    '.classifier.ReLU2':"fc7",
+                    '.classifier.Linear6':"fc8",}
+
+layerrename_f = lambda s: layerrenamedict[s]
+cleanobj_df["layershortname"] = cleanobj_df.layername.apply(layerrename_f)
+maxobj_df["layershortname"] = maxobj_df.layername.apply(layerrename_f)
+runtime_df["layershortname"] = maxobj_df.layername.apply(layerrename_f)
+sumtab_mean = cleanobj_df.groupby(["layershortname", "noise_level"]).mean()[optimlist]
+sumtab_sem = cleanobj_df.groupby(["layershortname", "noise_level"]).sem()[optimlist]
+noisesumtab_mean = maxobj_df.groupby(["layershortname", "noise_level"]).mean()[optimlist]
+noisesumtab_sem = maxobj_df.groupby(["layershortname", "noise_level"]).sem()[optimlist]
+sumtab_mean.to_csv(join("summary", "CMA_benchmark_export_summary.csv"))
+sumtab_sem.to_csv(join("summary", "CMA_benchmark_export_summary_sem.csv"))
+noisesumtab_mean.to_csv(join("summary", "CMA_benchmark_export_maxobj_summary.csv"))
+noisesumtab_sem.to_csv(join("summary", "CMA_benchmark_export_maxobj_summary_sem.csv"))
+#%% Runtime synopsis table
+runtime_synoptab = pd.concat((runtime_df[optimlist].mean(),runtime_df[optimlist].sem()),axis=1).T
+runtime_synoptab.to_csv(join("summary", "CMA_benchmark_export_runtime.csv"))
+#%% Statistics comparison
+from scipy.stats import ttest_rel, ttest_ind, ttest_1samp
+
+cleanobj_df.groupby(["layershortname", "noise_level"]).mean()[optimlist]
 #%%
 maxobj_df[optimlist].divide(maxobj_df[optimlist].mean(axis=1), axis=0).describe()
+#%% statistical testx
+layers = sorted(cleanobj_df.layershortname.unique())
+for ns in cleanobj_df.noise_level.unique():
+    for layer in layers:
+        subtb = cleanobj_df[(cleanobj_df.layershortname==layer)\
+                            & (cleanobj_df.noise_level==ns)]
+        tval, pval = ttest_ind(subtb.CholeskyCMAES, subtb.pycmaDiagonal)
+        print(f"{layer} noise {ns:.1f}, Chol vs cmaDiag {tval:.3f}({pval:.2e})")
 #%%
-runtime_df[optimlist].describe(include=["sem"])
+layers = sorted(cleanobj_df.layershortname.unique())
+for layer in layers:
+    for ns in cleanobj_df.noise_level.unique():
+        subtb = cleanobj_df[(cleanobj_df.layershortname==layer)\
+                            & (cleanobj_df.noise_level==ns)]
+        meanscores = subtb.mean()[optimlist]
+        maxidx = meanscores.argmax()
+        bestopt = optimlist[maxidx]
+        bestopt_equiv = []
+        for i, optnm in enumerate(optimlist):
+            if i == maxidx:
+                continue
+
+            tval, pval = ttest_ind(subtb[bestopt], subtb[optnm])
+            if pval > 0.001:
+                bestopt_equiv.append(optnm)
+            # print(f"{layer} noise {ns:.1f}, Chol vs cmaDiag {tval:.3f}({pval:.2e})")
+        print(f"{layer} noise {ns:.1f}, best {bestopt}, equiv {bestopt_equiv}")
+
+
+#%%
+layers = sorted(cleanobj_df.layershortname.unique())
+for layer in layers:
+    for ns in normobj_df.noise_level.unique():
+        subtb = normobj_df[(normobj_df.layershortname==layer)\
+                            & (normobj_df.noise_level==ns)]
+        meanscores = subtb.mean()[optimlist]
+        maxidx = meanscores.argmax()
+        bestopt = optimlist[maxidx]
+        bestopt_equiv = []
+        for i, optnm in enumerate(optimlist):
+            if i == maxidx:
+                continue
+
+            tval, pval = ttest_ind(subtb[bestopt], subtb[optnm])
+            if pval > 0.001:
+                bestopt_equiv.append(optnm)
+            # print(f"{layer} noise {ns:.1f}, Chol vs cmaDiag {tval:.3f}({pval:.2e})")
+        print(f"{layer} noise {ns:.1f}, best {bestopt}, equiv {bestopt_equiv}")
+#%%
+normtab_mean = normobj_df.groupby(["layershortname", "noise_level"]).mean()[optimlist]
+normtab_sem = normobj_df.groupby(["layershortname", "noise_level"]).sem()[optimlist]
+normtab_mean.to_csv(join("summary", "CMA_benchmark_export_summary_norm.csv"))
+normtab_sem.to_csv(join("summary", "CMA_benchmark_export_summary_norm_sem.csv"))
+#%%
+for ns in [0.0,0.2,0.5]:
+    subtb = normobj_df[normobj_df.noise_level == ns]
+    for i, optnm in enumerate(optimlist):
+        if optnm in ["ZOHA_Sphere_exp", "Genetic","ZOHA_Sphere_inv"]:
+            continue
+        tval, pval = ttest_ind(subtb["ZOHA_Sphere_exp"], subtb[optnm])
+        if pval < 0.005:
+            print(f"All layer noise {ns:.1f}, Sph_exp vs {optnm} {tval:.3f}({pval:.2e})")
+
+#%% Export String for latex
+for optnm in ["CholeskyCMAES", "pycma", "pycmaDiagonal"]:
+    tval,pval = ttest_ind(normobj_df["ZOHA_Sphere_exp"], normobj_df[optnm])
+    print(f"t_{{2098}}={tval:.2f},p={pval:.1e}\\times 10^{{}} for {optnm}")
