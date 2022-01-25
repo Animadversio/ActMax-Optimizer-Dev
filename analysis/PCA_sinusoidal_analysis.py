@@ -1,3 +1,6 @@
+"""Analysis script for understanding the
+PCA spectral structure of Evolution trajectories
+"""
 import os
 import re
 from os.path import join
@@ -331,7 +334,8 @@ plt.show()
 figh = plt.figure(figsize=[6.5,5])
 # sns.heatmap(np.abs(meanPCdata['PCvecs']@PCdata['PCvecs'].T), )
 # xticklabels=range(1,51,5), yticklabels=range(1,51,5),)
-plt.matshow(np.abs(meanPCdata['PCvecs'][:50,:]@PCdata['PCvecs'].T), cmap="rocket", fignum=0)
+cosangmat = np.abs(meanPCdata['PCvecs'][:50,:]@PCdata['PCvecs'].T)
+plt.matshow(cosangmat, cmap="rocket", fignum=0)
 plt.colorbar()
 plt.xticks(range(4,51,5),range(5,51,5))
 plt.yticks(range(4,51,5),range(5,51,5))
@@ -343,10 +347,104 @@ plt.title("Comparison of PC axes for Mean Traj and All codes", fontsize=16)
 plt.savefig(join(figdir, "Example_PC_axes_inprod_mat_fc8_01.png"))
 plt.savefig(join(figdir, "Example_PC_axes_inprod_mat_fc8_01.pdf"))
 plt.show()
+#%%
+PCmachine = PCA(2000)
+codes_PC_reduced = PCmachine.fit_transform(X=trajdata["codes_all"])
+plt.figure()
+plt.loglog(np.arange(1,2001), PCmachine.explained_variance_ratio_)
+plt.show()
+#%% Example Lissajour curves
+import matplotlib.collections as mcoll
+import matplotlib.path as mpath
+def colorline(
+    x, y, z=None, ax=None, cmap=plt.get_cmap('copper'), norm=plt.Normalize(0.0, 1.0),
+        linewidth=3, alpha=1.0):
+    """
+    http://nbviewer.ipython.org/github/dpsanders/matplotlib-examples/blob/master/colorline.ipynb
+    http://matplotlib.org/examples/pylab_examples/multicolored_line.html
+    Plot a colored line with coordinates x and y
+    Optionally specify colors in the array z
+    Optionally specify a colormap, a norm function and a line width
+    """
+
+    # Default colors equally spaced on [0,1]:
+    if z is None:
+        z = np.linspace(0.0, 1.0, len(x))
+
+    # Special case if a single number:
+    if not hasattr(z, "__iter__"):  # to check for numerical input -- this is a hack
+        z = np.array([z])
+
+    z = np.asarray(z)
+
+    segments = make_segments(x, y)
+    lc = mcoll.LineCollection(segments, array=z, cmap=cmap, norm=norm,
+                              linewidth=linewidth, alpha=alpha)
+
+    if ax is None:
+        ax = plt.gca()
+    ax.add_collection(lc)
+
+    return lc
+
+
+def make_segments(x, y):
+    """
+    Create list of line segments from x and y coordinates, in the correct format
+    for LineCollection: an array of the form numlines x (points per line) x 2 (x
+    and y) array
+    """
+
+    points = np.array([x, y]).T.reshape(-1, 1, 2)
+    segments = np.concatenate([points[:-1], points[1:]], axis=1)
+    return segments
+
+# N = 10
+# np.random.seed(101)
+# x = np.random.rand(N)
+# y = np.random.rand(N)
+# fig, ax = plt.subplots()
+#
+# path = mpath.Path(np.column_stack([x, y]))
+# verts = path.interpolated(steps=3).vertices
+# x, y = verts[:, 0], verts[:, 1]
+# z = np.linspace(0, 1, len(x))
+# colorline(x, y, z, cmap=plt.get_cmap('jet'), linewidth=2)
+
+plt.show()
+
+projtraj = meanPCdata['PCcoefs_mean']
+K = 6
+figh, axs = plt.subplots(K, K, figsize=[8,8], )
+for i in range(K+1):
+    for j in range(i):
+        colorline(projtraj[:,j], projtraj[:,i], ax=axs[i-1, j],
+                  cmap=plt.get_cmap('jet'), linewidth=2, alpha=0.6)
+        # timearr = np.arange(len(projtraj[:,j]))
+        # axs[i-1, j].plot(projtraj[:,j], projtraj[:,i], c="k")
+        # timearr = np.arange(len(projtraj[:,j]))
+        # axs[i-1, j].scatter(projtraj[:,j], projtraj[:,i], c=timearr, marker='o',)
+        if j > 0:
+            axs[i - 1, j].set_yticklabels([])
+        if j == 0:
+            axs[i - 1, j].set_ylabel(f"PC {i+1}")
+        if i < K:
+            axs[i-1, j].set_xticklabels([])
+        if i == K:
+            axs[i - 1, j].set_xlabel(f"PC {j+1}")
+        axs[i-1, j].axis("auto")
+
+for i in range(K):
+        for j in range(i+1, K):
+            axs[i, j].axis("off")
+figh.tight_layout()
+plt.savefig(join(figdir, "Example_Lissajous_curves_fc8_01_time.png"))
+plt.savefig(join(figdir, "Example_Lissajous_curves_fc8_01_time.pdf"))
+plt.show()
 
 
 #%%
-
+df_col, meta_col = load_trajectory_PCAdata_cma(dataroot)
 #%%
 layerlist = ['alexnet_.features.ReLU4_000',
              'alexnet_.features.ReLU7_000',
@@ -493,3 +591,4 @@ plt.show()
 plt.figure()
 plt.plot(cosfit_df.PCi, cosfit_df.phi)
 plt.show()
+#%%
