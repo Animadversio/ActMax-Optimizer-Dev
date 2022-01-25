@@ -1,3 +1,6 @@
+"""Analysis script for understanding the
+spectral structure of Covariance matrix during evolution
+"""
 import os
 import re
 from os.path import join
