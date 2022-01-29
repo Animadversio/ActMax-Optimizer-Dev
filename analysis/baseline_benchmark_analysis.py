@@ -10,10 +10,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import matplotlib
+import matplotlib as mpl
 import pickle as pkl
-matplotlib.rcParams['pdf.fonttype'] = 42 # set font for export to pdfs
-matplotlib.rcParams['ps.fonttype'] = 42
+mpl.rcParams['pdf.fonttype'] = 42 # set font for export to pdfs
+mpl.rcParams['ps.fonttype'] = 42
+mpl.rcParams['axes.spines.right'] = False
+mpl.rcParams['axes.spines.top'] = False
 #%%
 def load_format_data(Droot, sumdir="summary"):
     maxobj_col = []
@@ -69,11 +71,102 @@ def load_format_data(Droot, sumdir="summary"):
 dataroot = r"E:\Cluster_Backup\ng_optim_cmp"
 maxobj_df, runtime_df, codenorm_df, optimlist = load_format_data(dataroot, sumdir="summary")
 #%%
-Anet_msk = maxobj_df.netname=="alexnet"
-Rnet_msk = maxobj_df.netname=="resnet50_linf8"
-clean_msk = maxobj_df.noise_level==0.0
-ns02_msk = maxobj_df.noise_level==0.0
-ns05_msk = maxobj_df.noise_level==0.5
+def load_written_stats(sumdir = "summary"):
+    maxobj_df = pd.read_csv(join(sumdir, "ng_benchmark_maxobj_summary.csv"), index_col=0)
+    runtime_df = pd.read_csv(join(sumdir, "ng_benchmark_runtime_summary.csv"), index_col=0)
+    codenorm_df = pd.read_csv(join(sumdir, "ng_benchmark_codenorm_summary.csv"), index_col=0)
+    optimlist = [colnm for colnm in maxobj_df if colnm not in ['netname', 'layername', 'channum', 'noise_level', 'RND', 'expdir']]
+    return maxobj_df, runtime_df, codenorm_df, optimlist
+
+maxobj_df, runtime_df, codenorm_df, optimlist = load_written_stats("summary")
+#%%
+normobj_df = maxobj_df.copy()
+layers = sorted(maxobj_df.layername.unique())
+for layer in layers:
+    for channum in maxobj_df.channum.unique():
+        msk = (maxobj_df.layername == layer)\
+            & (maxobj_df.channum == channum)
+        subtb = maxobj_df[msk]
+        normalizer = subtb[optimlist].max().max()
+        # normalize to the highest clean score ever achieved for this unit
+        normobj_df.loc[msk, optimlist] = normobj_df.loc[msk, optimlist] / normalizer
+#%%
+layerrenamedict = { '.features.ReLU4':"conv2",
+                    '.features.ReLU7':"conv3",
+                    '.features.ReLU9':"conv4",
+                    '.features.ReLU11':"conv5",
+                    '.classifier.ReLU5':"fc6",
+                    '.classifier.ReLU2':"fc7",
+                    '.classifier.Linear6':"fc8",
+                    '.layer1.Bottleneck2':"RN50-Layer1-Btn2",
+                    '.layer2.Bottleneck3':"RN50-Layer2-Btn3",
+                    '.layer3.Bottleneck5':"RN50-Layer3-Btn5",
+                    '.layer4.Bottleneck2':"RN50-Layer4-Btn2",
+                    '.Linearfc':"RN50-fc"
+}
+optimorder = ['CMA','DiagonalCMA','SQPCMA','RescaledCMA','ES',
+             'NGOpt','DE','TwoPointsDE',
+             'PSO','OnePlusOne','TBPSA',
+             'RandomSearch']
+layerrename_f = lambda s: layerrenamedict[s]
+normobj_df["layershortname"] = normobj_df.layername.apply(layerrename_f)
+maxobj_df["layershortname"] = maxobj_df.layername.apply(layerrename_f)
+normobj_sumtab = normobj_df.groupby(["layershortname", "noise_level"]).mean()[optimorder]
+maxobj_sumtab = maxobj_df.groupby(["layershortname", "noise_level"]).mean()[optimorder]
+normobj_sumtab.to_csv(join("summary", "ng_benchmark_export_normobj_summary.csv"))
+maxobj_sumtab.to_csv(join("summary", "ng_benchmark_export_maxobj_summary.csv"))
+#%%
+from scipy.stats import ttest_rel, ttest_ind, ttest_1samp
+def ttest_best_method(normobj_df, optimlist, print_tstat=False):
+    layers = sorted(normobj_df.layershortname.unique())
+    for layer in layers:
+        for ns in normobj_df.noise_level.unique():
+            subtb = normobj_df[(normobj_df.layershortname == layer) \
+                               & (normobj_df.noise_level == ns)]
+            if len(subtb) == 0:
+                continue
+            meanscores = subtb.mean()[optimlist]
+            maxidx = meanscores.argmax()
+            bestopt = optimlist[maxidx]
+            bestopt_equiv = []
+            for i, optnm in enumerate(optimlist):
+                if i == maxidx:
+                    continue
+
+                tval, pval = ttest_ind(subtb[bestopt], subtb[optnm])
+                if pval > 0.001:
+                    bestopt_equiv.append(optnm)
+                if print_tstat: print(f"{layer} noise {ns:.1f}, {bestopt} ({subtb[bestopt].mean():.3f}) vs {optnm} ({subtb[optnm].mean():.3f})"
+                                      f" t={tval:.3f}(P={pval:.2e})")
+            print(f"{layer} noise {ns:.1f}, best {bestopt}, equiv {bestopt_equiv}")
+
+    subtb = normobj_df
+    meanscores = subtb.mean()[optimlist]
+    maxidx = meanscores.argmax()
+    bestopt = optimlist[maxidx]
+    bestopt_equiv = []
+    for i, optnm in enumerate(optimlist):
+        if i == maxidx:
+            continue
+
+        tval, pval = ttest_ind(subtb[bestopt], subtb[optnm])
+        if pval > 0.001:
+            bestopt_equiv.append(optnm)
+        if print_tstat: print(f"{bestopt} ({subtb[bestopt].mean():.3f}) vs {optnm} ({subtb[optnm].mean():.3f}) "
+                              f"t={tval:.3f}(P={pval:.2e})")
+
+    print(f"All layer all noise, best {bestopt}, equiv {bestopt_equiv}")
+
+
+ttest_best_method(normobj_df, optimlist, True)
+#%%
+
+#%%
+Anet_msk = maxobj_df.netname == "alexnet"
+Rnet_msk = maxobj_df.netname == "resnet50_linf8"
+clean_msk = maxobj_df.noise_level == 0.0
+ns02_msk = maxobj_df.noise_level == 0.0
+ns05_msk = maxobj_df.noise_level == 0.5
 #%%
 
 plt.figure(figsize=[8, 6])
