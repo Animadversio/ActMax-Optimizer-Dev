@@ -1,5 +1,7 @@
 """
 Analysis script for comparing performance of different CMA algorithms.
+
+Including loading, visualization, exporting statistics.
 """
 import os
 import re
@@ -12,12 +14,14 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import matplotlib
 import pickle as pkl
-matplotlib.rcParams['pdf.fonttype'] = 42 # set font for export to pdfs
-matplotlib.rcParams['ps.fonttype'] = 42
+import matplotlib as mpl
+mpl.rcParams['pdf.fonttype'] = 42
+mpl.rcParams['ps.fonttype'] = 42
+mpl.rcParams['axes.spines.right'] = False
+mpl.rcParams['axes.spines.top'] = False
 pd.options.display.max_columns = 10
-pd.options.display.max_colwidth=200
+pd.options.display.max_colwidth = 200
 #%%
 def load_format_data_cma(Droot, sumdir="summary"):
     maxobj_col = []
@@ -181,6 +185,26 @@ for layer in layers:
             # print(f"{layer} noise {ns:.1f}, Chol vs cmaDiag {tval:.3f}({pval:.2e})")
         print(f"{layer} noise {ns:.1f}, best {bestopt}, equiv {bestopt_equiv}")
 #%%
+subtb = normobj_df
+meanscores = subtb.mean()[optimlist]
+maxidx = meanscores.argmax()
+bestopt = optimlist[maxidx]
+bestopt_equiv = []
+for i, optnm in enumerate(optimlist):
+    if i == maxidx:
+        continue
+
+    tval, pval = ttest_ind(subtb[bestopt], subtb[optnm])
+    if pval > 0.001:
+        bestopt_equiv.append(optnm)
+    print(f"{layer} noise {ns:.1f}, {bestopt} vs {optnm} {tval:.3f}({pval:.2e})")
+
+print(f"All layer all noise, best {bestopt}, equiv {bestopt_equiv}")
+#%%
+bestopt, optnm = "pycma", "pycmaDiagonal"
+tval, pval = ttest_ind(subtb[bestopt], subtb[optnm])
+print(f"{layer} noise {ns:.1f}, {bestopt} vs {optnm} {tval:.3f}({pval:.2e})")
+#%%
 normtab_mean = normobj_df.groupby(["layershortname", "noise_level"]).mean()[optimlist]
 normtab_sem = normobj_df.groupby(["layershortname", "noise_level"]).sem()[optimlist]
 normtab_mean.to_csv(join("summary", "CMA_benchmark_export_summary_norm.csv"))
@@ -194,6 +218,53 @@ for ns in [0.0,0.2,0.5]:
         tval, pval = ttest_ind(subtb["ZOHA_Sphere_exp"], subtb[optnm])
         if pval < 0.005:
             print(f"All layer noise {ns:.1f}, Sph_exp vs {optnm} {tval:.3f}({pval:.2e})")
+
+#%% Noise free and noise
+figdir = r"E:\OneDrive - Harvard University\GECCO2022\Figures\CMABenchmark"
+normdf_long = normobj_df.melt(id_vars=['netname', 'layername', 'channum',
+                         'noise_level', 'RND', 'expdir', 'layershortname'],
+                  value_vars=optimlist, var_name="optimnm", value_name="score")
+layerorder = sorted(normobj_df.layershortname.unique())
+for ns in [0.0, 0.2, 0.5]:
+    figh = plt.figure(figsize=(6, 5))
+    sns.boxplot(data=normdf_long[normdf_long.noise_level == ns], y="score", x="layershortname", hue="optimnm",
+                color="red", saturation=0.4, order=layerorder)
+    plt.title("CMA-style algorithm comparison AlexNet noise %.1f"%ns)
+    figh.savefig(join(figdir, "cma_cmp_layerwise_ns%.1f.png"%ns))
+    figh.savefig(join(figdir, "cma_cmp_layerwise_ns%.1f.pdf"%ns))
+    plt.show()
+#%% Visualize part of the data
+normdf_long_part = normobj_df.melt(id_vars=['netname', 'layername', 'channum',
+                         'noise_level', 'RND', 'expdir', 'layershortname'],
+                  value_vars=['CholeskyCMAES', 'pycma', 'pycmaDiagonal',], var_name="optimnm", value_name="score")
+layerorder = sorted(normobj_df.layershortname.unique())
+figh = plt.figure(figsize=(4, 4))
+sns.boxplot(data=normdf_long_part,
+            y="score", x="layershortname", hue="optimnm",
+            color="red", saturation=0.4, order=layerorder)
+plt.title("AlexNet all noise")
+figh.savefig(join(figdir, "cma_cmp_layerwise_part.png"))
+figh.savefig(join(figdir, "cma_cmp_layerwise_part.pdf"))
+plt.show()
+for ns in [0.0, 0.2, 0.5]:
+    figh = plt.figure(figsize=(4, 4))
+    sns.boxplot(data=normdf_long_part[normdf_long_part.noise_level == ns],
+                y="score", x="layershortname", hue="optimnm",
+                color="red", saturation=0.4, order=layerorder)
+    plt.title("AlexNet noise %.1f"%ns)
+    figh.savefig(join(figdir, "cma_cmp_layerwise_part_ns%.1f.png"%ns))
+    figh.savefig(join(figdir, "cma_cmp_layerwise_part_ns%.1f.pdf"%ns))
+    plt.show()
+#%% Collect GA CMA ratio
+
+GA_CMA_ratio = normobj_df.groupby(["layershortname", "noise_level"]).mean()["Genetic"] /\
+    normobj_df.groupby(["layershortname", "noise_level"]).mean()["CholeskyCMAES"]
+GA_CMA_ratio_per_ns = normobj_df.groupby(["noise_level"]).mean()["CholeskyCMAES"] /\
+    normobj_df.groupby(["noise_level"]).mean()["Genetic"]
+GA_CMA_ratio_per_layer = normobj_df.groupby(["layershortname"]).mean()["Genetic"] /\
+    normobj_df.groupby(["layershortname"]).mean()["CholeskyCMAES"]
+GA_CMA_ratio_pool = normobj_df.mean()["Genetic"] / normobj_df.mean()["CholeskyCMAES"]
+
 
 #%% Export String for latex
 for optnm in ["CholeskyCMAES", "pycma", "pycmaDiagonal"]:
