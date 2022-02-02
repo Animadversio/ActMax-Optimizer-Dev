@@ -399,18 +399,6 @@ def make_segments(x, y):
     segments = np.concatenate([points[:-1], points[1:]], axis=1)
     return segments
 
-# N = 10
-# np.random.seed(101)
-# x = np.random.rand(N)
-# y = np.random.rand(N)
-# fig, ax = plt.subplots()
-#
-# path = mpath.Path(np.column_stack([x, y]))
-# verts = path.interpolated(steps=3).vertices
-# x, y = verts[:, 0], verts[:, 1]
-# z = np.linspace(0, 1, len(x))
-# colorline(x, y, z, cmap=plt.get_cmap('jet'), linewidth=2)
-
 plt.show()
 
 projtraj = meanPCdata['PCcoefs_mean']

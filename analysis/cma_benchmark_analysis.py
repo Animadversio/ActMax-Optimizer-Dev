@@ -22,6 +22,7 @@ mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 pd.options.display.max_columns = 10
 pd.options.display.max_colwidth = 200
+figdir = r"E:\OneDrive - Harvard University\GECCO2022\Figures\CMABenchmark"
 #%%
 def load_format_data_cma(Droot, sumdir="summary"):
     maxobj_col = []
@@ -220,7 +221,6 @@ for ns in [0.0,0.2,0.5]:
             print(f"All layer noise {ns:.1f}, Sph_exp vs {optnm} {tval:.3f}({pval:.2e})")
 
 #%% Noise free and noise
-figdir = r"E:\OneDrive - Harvard University\GECCO2022\Figures\CMABenchmark"
 normdf_long = normobj_df.melt(id_vars=['netname', 'layername', 'channum',
                          'noise_level', 'RND', 'expdir', 'layershortname'],
                   value_vars=optimlist, var_name="optimnm", value_name="score")

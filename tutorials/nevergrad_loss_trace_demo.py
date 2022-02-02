@@ -1,3 +1,6 @@
+""" Run optimization with nevergrad interface
+Record and plot the score traces of nevergrad optimizers
+"""
 import nevergrad as ng
 import nevergrad.common.typing as tp
 from nevergrad.parametrization import parameter as p
@@ -13,8 +16,10 @@ mpl.rcParams['pdf.fonttype'] = 42 # set font for export to pdfs
 mpl.rcParams['ps.fonttype'] = 42
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
+
 class LossTraceLogger:
-    """Logs parameter and run information throughout into a file during
+    """Adapted from the official ParametersLogger, just log the loss and some hyperparameter
+    Logs parameter and run information throughout into a file during
     optimization.
     Parameters
     ----------
@@ -56,34 +61,7 @@ class LossTraceLogger:
             "#loss": loss,
         }
         self.data_col.append(data)
-        # if optimizer.num_objectives > 1:  # multiobjective losses
-        #     data.update({f"#losses#{k}": val for k, val in enumerate(candidate.losses)})
-        #     data["#pareto-length"] = len(optimizer.pareto_front())
-        # if hasattr(optimizer, "_configured_optimizer"):
-        #     configopt = optimizer._configured_optimizer  # type: ignore
-        #     if isinstance(configopt, base.ConfiguredOptimizer):
-        #         data.update({"#optimizer#" + x: str(y) for x, y in configopt.config().items()})
-        # if isinstance(candidate._meta.get("sigma"), float):
-        #     data["#meta-sigma"] = candidate._meta["sigma"]  # for TBPSA-like algorithms
-        # if candidate.generation > 1:
-        #     data["#parents_uids"] = candidate.parents_uids
-        # for name, param in helpers.flatten(candidate, with_containers=False, order=1):
-        #     val = param.value
-        #     if isinstance(val, (np.float_, np.int_, np.bool_)):
-        #         val = val.item()
-        #     if inspect.ismethod(val):
-        #         val = repr(val.__self__)  # show mutation class
-        #     data[name if name else "0"] = val.tolist() if isinstance(val, np.ndarray) else val
-        #     if isinstance(param, p.Data):
-        #         val = param.sigma.value
-        #         data[(name if name else "0") + "#sigma"] = (
-        #             val.tolist() if isinstance(val, np.ndarray) else val
-        #         )
-        # try:  # avoid bugging as much as possible
-        #     with self._filepath.open("a") as f:
-        #         f.write(json.dumps(data) + "\n")
-        # except Exception as e:  # pylint: disable=broad-except
-        #     warnings.warn(f"Failing to json data: {e}")
+
     def dump(self):
         pkl.dump(self.data_col, open(self._filepath,"wb"), )
 
@@ -96,12 +74,6 @@ class LossTraceLogger:
         """Loads data from the log file"""
         losses = np.array([d["#loss"] for d in self.data_col])
         return losses
-        # data: tp.List[tp.Dict[str, tp.Any]] = []
-        # if self._filepath.exists():
-        #     with self._filepath.open("r") as f:
-        #         for line in f.readlines():
-        #             data.append(json.loads(line))
-        # return data
 #%%
 from core.GAN_utils import upconvGAN
 from core.CNN_scorers import TorchScorer
@@ -154,6 +126,7 @@ for optim in df_all:
     plt.scatter(np.arange(1,3001), df_all[optim], s=7, alpha=0.3, label=optim)
 plt.legend()
 plt.show()
+
 #%% max value plot
 def plot_traj_cmp(df_all, optimorder=None, scatter=True):
     if optimorder is None:
