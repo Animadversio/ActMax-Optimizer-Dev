@@ -14,6 +14,8 @@ from sklearn.decomposition import PCA
 import matplotlib as mpl
 from core.montage_utils import make_grid, ToPILImage
 from core.GAN_utils import upconvGAN
+from scipy.stats import spearmanr, pearsonr, ks_2samp
+figdir = r"E:\OneDrive - Harvard University\GECCO2022\Figures\EigenSpaceAlignment"
 
 mpl.rcParams['pdf.fonttype'] = 42
 mpl.rcParams['ps.fonttype'] = 42
@@ -78,12 +80,109 @@ def load_trajectory_PCAdata_cma(Droot, sumdir="summary"):
 dataroot = r"E:\Cluster_Backup\cma_optim_cmp"
 meandf_col, meta_col, code_col = load_trajectory_PCAdata_cma(dataroot)
 #%%
-codes_arr = np.array(code_col["alexnet_.classifier.Linear6_000"])
-#%%
-#%%
-from scipy.stats import spearmanr, pearsonr, ks_2samp
-figdir = r"E:\OneDrive - Harvard University\GECCO2022\Figures\EigenSpaceAlignment"
+def load_finalgen_cma_noisectrl(Droot, select_optim=None, PCproj=None):
+    codes_col = []
+    meta_col = []
+    subdirs = os.listdir(Droot)
+    if select_optim is not None:
+        subdirs = select_optim
+    for optimnm in tqdm(subdirs):
+        npzpaths = glob(join(Droot, optimnm, "noisectrl_%s_*.npz"%optimnm))
+        for fpath in tqdm(npzpaths):
+            if "PCA" in fpath:
+                continue
+            shortfn = os.path.split(fpath)[1]
+            # CholeskyCMAES_alexnet_.classifier.Linear6_003_77176.npz
+            try:
+                toks = re.findall("noisectrl_%s_rep(\d\d\d\d\d).npz"%optimnm, shortfn)
+                RND = int(toks[0][0])
+                expmeta = EasyDict(RND=RND, expdir=optimnm)
+                data = np.load(fpath)
+                codes_all = data["codes_all"]
+                generations = data["generations"]
+                scores_all = data["scores_all"]
+                meancodes = np.array([codes_all[generations == i, :].mean(axis=0)
+                                      for i in range(generations.max() + 1)])
+                evoldir = meancodes[-1,:]
+                if PCproj is not None:
+                    PCA_npz = "%s_meanPCA_coef_rep%05d.npz"%(optimnm,RND)
+                    PCA_data = np.load(join(Droot, optimnm, PCA_npz))
+                    evoldir = meancodes[-1,:] @ PCA_data["PCvecs"][:5, :].T @PCA_data["PCvecs"][:5, :]#data["PCcoefs_mean"][-1, :5] @ data["PCvecs"][:5, :]
+                meta_col.append(expmeta)
+                codes_col.append(evoldir)
+            except :
+                continue
+    meta_df = pd.DataFrame(meta_col)
+    return codes_col, meta_df
 
+dataroot = r"F:\insilico_exps\noise_optim_ctrl"
+ctrlcodes_col, meta_df = load_finalgen_cma_noisectrl(dataroot, select_optim=["CholeskyCMAES"])
+ctrlcodes_arr = np.array(ctrlcodes_col)
+#%%
+def load_finalgen_cma(Droot, sumdir="summary"):
+    subdirs = os.listdir(Droot)
+    # df_col = {}
+    meta_col = {}
+    fincode_col = {}
+    for unitdir in tqdm(subdirs):
+        # 'resnet50_linf8_.Linearfc_009_ns0.5'
+        toks = re.findall("(.*)_(\.[^_]*)_(\d*)(.*)", unitdir)
+        assert len(toks) == 1, "cannot match pattern for %s" % unitdir
+        toks = toks[0]
+        netname = toks[0]
+        layername = toks[1]
+        channum = int(toks[2])
+        if len(toks[3]) > 0:
+            nstok = re.findall("_ns(.*)", toks[3])[0]
+            noise_level = float(nstok)
+        else:
+            noise_level = 0.0
+        csvpaths = glob(join(Droot, unitdir, "CholeskyCMAES_meanPCA_cosfit_*.csv"))
+        # df_col[unitdir] = []
+        meta_col[unitdir] = []
+        fincode_col[unitdir] = []
+        for fpath in csvpaths:
+            shortfn = os.path.split(fpath)[1]
+            # CholeskyCMAES_alexnet_.classifier.Linear6_003_77176.npz
+            toks = re.findall("CholeskyCMAES_meanPCA_cosfit_(.*)_(\.[^_]*)_(\d*)_(\d\d\d\d\d).csv", shortfn)
+            assert len(toks) == 1, "cannot match pattern for %s"%shortfn
+            assert toks[0][0] == netname
+            assert toks[0][1] == layername
+            assert channum == int(toks[0][2])
+            RND = int(toks[0][3])
+            # npzpath = "CholeskyCMAES_meanPCA_coef_%s_%s_%03d_%05d.npz"%(netname,layername,channum,RND)
+            npzpath = "CholeskyCMAES_%s_%s_%03d_%05d.npz"%(netname,layername,channum,RND)
+            expmeta = EasyDict(netname=netname, layername=layername, channum=channum,
+                               noise_level=noise_level, RND=RND,
+                               expdir=unitdir)
+            # PCA_df = pd.read_csv(fpath)
+            # df_col[unitdir].append(PCA_df)# CholeskyCMAES_alexnet_.classifier.Linear6_000_89223.npz
+
+            meta_col[unitdir].append(expmeta)
+            data = np.load(join(Droot,unitdir,npzpath))
+            codes_all = data["codes_all"]
+            generations = data["generations"]
+            scores_all = data["scores_all"]
+            meancodes = np.array([codes_all[generations == i, :].mean(axis=0)
+                                  for i in range(generations.max() + 1)])
+            evoldir = meancodes[-1, :]
+            # print(list(data))
+            # PCreduc_code = data["PCcoefs_mean"][-1, :5] @ data["PCvecs"][:5, :]
+            fincode_col[unitdir].append(evoldir)
+            # break
+        # break
+    return fincode_col, meta_col
+
+dataroot = r"E:\Cluster_Backup\cma_optim_cmp"
+fincode_col, meta_col = load_finalgen_cma(dataroot)
+#%%%
+fincodes_arr = np.array(sum([v for k, v in fincode_col.items()],[]))
+#%%
+np.savez("data\\finalcodes_evol_vs_ctrl.npz", fincodes_arr=fincodes_arr,
+         meta_col=meta_col, ctrlcodes_arr=ctrlcodes_arr)
+
+#%%
+codes_arr = np.array(code_col["alexnet_.classifier.Linear6_000"])
 #%%
 G = get_GAN()
 #%%
@@ -94,6 +193,8 @@ ToPILImage()(make_grid(imgs)).show()
 codes_pool_arr = np.array(sum(code_col.values(), []))
 #%%
 U, S, V = np.linalg.svd(codes_pool_arr)
+#%%
+U, S, V = np.linalg.svd(fincodes_arr)
 #%%
 S_shfl_col = []
 for i in tqdm(range(500)):
@@ -149,17 +250,28 @@ signif_axes995 = (expvar > np.percentile(expvar_shfl, 99.5))
 print("0.05 signif SV dimensions %d"%signif_axes95.sum())
 print("0.01 signif SV dimensions %d"%signif_axes99.sum())
 print("0.005 signif SV dimensions %d"%signif_axes995.sum())
+#%% Second Major analysis
 
+codes_pool_arr = np.load(join("data", "codes_pool.npy"), ).copy()
+codes_pool_shuffle = np.array([row[np.random.permutation(4096)] for row in codes_pool_arr])
+#%%
+data = np.load("data\\finalcodes_evol_vs_ctrl.npz")
+fincodes_arr = data["fincodes_arr"]
+ctrlcodes_arr = data["ctrlcodes_arr"]
 
+fincodes_shfl = np.array([row[np.random.permutation(4096)] for row in fincodes_arr])
 #%% Load up the Hessian Eigenframe
 Hdata = np.load(r"E:\OneDrive - Washington University in St. Louis\Hessian_summary\fc6GAN\Evolution_Avg_Hess.npz")
-eigvecs = Hdata["eigvect_avg"].copy()[:, ::-1]
-eigvals = Hdata["eigv_avg"].copy()[::-1]
+eigvecs = np.array(Hdata["eigvect_avg"].copy()[:, ::-1])
+eigvals = np.array(Hdata["eigv_avg"].copy()[::-1])
 eigids = np.arange(1, 4097)
 #%%
 projcoef = codes_pool_arr@eigvecs
 projcoef_shfl = codes_pool_shuffle@eigvecs
-
+#%%
+realevol_projcoef = fincodes_arr @ eigvecs
+evolshfl_projcoef = fincodes_shfl @ eigvecs
+ctrlevol_projcoef = ctrlcodes_arr @eigvecs
 #%%
 cutoff = 800
 meanabs_coef = np.abs(projcoef).mean(axis=0)
@@ -222,20 +334,58 @@ plt.savefig(join(figdir, "absmean_coef_scatter.png"))
 plt.savefig(join(figdir, "absmean_coef_scatter.pdf"))
 plt.show()
 #%%
-plt.figure()
-plt.scatter(np.log10(eigvals), np.abs(projcoef).mean(axis=0), s=9, alpha=0.15, label="Evol Direction")
-plt.scatter(np.log10(eigvals), np.abs(projcoef_shfl).mean(axis=0), s=9,  alpha=0.15, label="Shuffled")
+plt.figure(figsize=[4.5, 4])
+plt.scatter(np.log10(eigvals), np.abs(projcoef).mean(axis=0), s=6, alpha=0.15, label="Evol Direction")
+plt.scatter(np.log10(eigvals), np.abs(projcoef_shfl).mean(axis=0), s=6,  alpha=0.15, label="Shuffled")
+plt.scatter(np.log10(eigvals), np.abs(ctrlevol_projcoef).mean(axis=0), s=6, alpha=0.05, label="ctrl Evol Direction")
 plt.xlabel("log 10 (eig value)")
 plt.ylabel("Mean Proj Amplitude |\\bar{z_Tv_k^T}|")
 plt.legend()
-plt.savefig(join(figdir, "meanabs_coef_scatter.png"))
-plt.savefig(join(figdir, "meanabs_coef_scatter.pdf"))
+# plt.savefig(join(figdir, "meanabs_coef_scatter.pdf"))
+# plt.savefig(join(figdir, "meanabs_coef_scatter.png"))
 plt.show()
+#%%
+cutoff = 800
+ks_prepost_nois, kspval_prepost_nois = ks_2samp(ctrlevol_projcoef[:,:cutoff].flatten(), ctrlevol_projcoef[:,cutoff:].flatten())
+ks_prepost_shfl, kspval_prepost_shfl = ks_2samp(evolshfl_projcoef[:,:cutoff].flatten(), evolshfl_projcoef[:,cutoff:].flatten())
+ks_prepost_real, kspval_prepost_real = ks_2samp(realevol_projcoef[:,:cutoff].flatten(), realevol_projcoef[:,cutoff:].flatten())
+#%%
+rval_log_real, pval_log_real = pearsonr(np.abs(realevol_projcoef).mean(axis=0)[:cutoff], np.log10(eigvals[:cutoff]), )
+rval_log_evol, pval_log_evol = pearsonr(np.abs(evolshfl_projcoef).mean(axis=0)[:cutoff], np.log10(eigvals[:cutoff]), )
+rval_log_ctrl, pval_log_ctrl = pearsonr(np.abs(ctrlevol_projcoef).mean(axis=0)[:cutoff], np.log10(eigvals[:cutoff]), )
 
 #%%
 spearmanr(np.abs(projcoef_shfl).mean(axis=0), np.arange(1, 4097))
 #%%
 
+def add_reg_line(x,y, ax=None, label=""):
+    m, b = np.polyfit(x, y, 1)
+    #m = slope, b=intercept
+    xbnd = np.array([x.min(), x.max()])
+    plt.plot(xbnd, m*xbnd + b, color="r", label=f"{label} fit: y={m:.1e}x+{b:.1e}")
+
+#%% Final version of
+
+plt.figure(figsize=[4, 4.5])
+plt.scatter(np.log10(eigvals), np.abs(ctrlevol_projcoef).mean(axis=0), s=6, alpha=0.15, label="Ctrl Noise Evol N=100")
+plt.scatter(np.log10(eigvals), np.abs(evolshfl_projcoef).mean(axis=0), s=6,  alpha=0.15, label="Shuffled N=1050")
+plt.scatter(np.log10(eigvals), np.abs(realevol_projcoef).mean(axis=0), s=6, alpha=0.15, label="Evol Direction N=1050")
+plt.vlines(np.log10(eigvals)[800], *plt.ylim(),linestyle="-.",color='k')
+add_reg_line(np.log10(eigvals)[:800],np.abs(ctrlevol_projcoef).mean(axis=0)[:800],label="ctrl")
+add_reg_line(np.log10(eigvals)[:800],np.abs(evolshfl_projcoef).mean(axis=0)[:800],label="shfl")
+add_reg_line(np.log10(eigvals)[:800],np.abs(realevol_projcoef).mean(axis=0)[:800],label="evol")
+plt.xlabel("log 10 (eig value)")
+plt.ylabel("Mean Travel distance \\bar{|z_Tv_k^T|}")
+plt.legend()
+plt.title(f"KS test of coefficient distribution\n pre and post cutoff {cutoff}\n"
+          f"KS = {ks_prepost_real:.3f} p = {kspval_prepost_real:.1e}\n"
+          f"Pearson correlation between top {cutoff}\n amplitude and the log eigenvalue\n"
+          f"Rho = {rval_log_real:.3f} p= {pval_log_real:.1e}")
+plt.savefig(join(figdir, "meanabs_coef_scatter_new_noise_ctrl_with_regress.pdf"))
+plt.savefig(join(figdir, "meanabs_coef_scatter_new_noise_ctrl_with_regress.png"))
+plt.show()
+
+#%%
 #%%
 cutoff = 1000
 rval_id, pval_id = spearmanr(np.abs(projcoef).mean(axis=0)[:cutoff], np.arange(1, cutoff+1))
@@ -245,3 +395,7 @@ print(f"With cutoff at eigenvalue {cutoff}")
 print(f"corr = {rval_id:.3f}, {pval_id:.1e}")
 print(f"corr = {rval_eig:.3f}, {pval_eig:.1e}")
 print(f"corr = {rval_logeig:.3f}, {pval_logeig:.1e}")
+#%%
+ks_prepost_real_mean, kspval_prepost_real_mean = ks_2samp(np.mean(realevol_projcoef[:,:cutoff],axis=0),
+                                                          np.mean(realevol_projcoef[:,cutoff:],axis=0))
+#%%
