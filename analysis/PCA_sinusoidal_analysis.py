@@ -21,6 +21,8 @@ mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 pd.options.display.max_columns = 10
 pd.options.display.max_colwidth = 200
+
+figdir = "E:\OneDrive - Harvard University\GECCO2022\Figures\Sinusoidal"
 #%%
 def load_trajectory_data_cma(Droot, sumdir="summary", meanPCA=True, fullPCA=False):
     subdirs = os.listdir(Droot)
@@ -217,11 +219,10 @@ def load_mean_trajectoryPCAdata_cma(Droot, sumdir="summary"):
     return df_col, meta_col
 
 
+dataroot = r"E:\Cluster_Backup\cma_optim_cmp"
 # df_col, meta_col = load_trajectory_PCAdata_cma(dataroot)
 meandf_col, meta_col = load_mean_trajectoryPCAdata_cma(dataroot)
 
-#%%
-figdir = "E:\OneDrive - Harvard University\GECCO2022\Figures\Sinusoidal"
 #%% Figure 3D
 plt.figure(figsize=[5, 5])
 PCarr = np.arange(1, 75)
@@ -353,7 +354,8 @@ codes_PC_reduced = PCmachine.fit_transform(X=trajdata["codes_all"])
 plt.figure()
 plt.loglog(np.arange(1,2001), PCmachine.explained_variance_ratio_)
 plt.show()
-#%% Example Lissajour curves
+
+#%% Plot Example Lissajour curves
 import matplotlib.collections as mcoll
 import matplotlib.path as mpath
 def colorline(
@@ -579,4 +581,75 @@ plt.show()
 plt.figure()
 plt.plot(cosfit_df.PCi, cosfit_df.phi)
 plt.show()
+
+#%% Noise Sinusoidal structure
+datadir = r"F:\insilico_exps\noise_optim_ctrl\CholeskyCMAES"
+#%% Loading up the noise driven evolution data
+# "CholeskyCMAES_meanPCA_coef_rep02681.npz"
+expvar_col = []
+PCcoefs_col = []
+npzpaths = glob(join(datadir,"CholeskyCMAES_meanPCA_coef_rep*.npz"))
+for fpath in npzpaths:
+    shortfn = os.path.split(fpath)[1]
+    # CholeskyCMAES_alexnet_.classifier.Linear6_003_77176.npz
+    toks = re.findall("CholeskyCMAES_meanPCA_coef_rep(\d\d\d\d\d).npz", shortfn)
+    RND = int(toks[0][0])
+    data = np.load(fpath)
+    expvar_col.append(data['expvar_ratio'].copy())
+    PCcoefs_col.append(data['PCcoefs_mean'].copy())
 #%%
+# plt.figure(figsize=[5, 5])
+# plt.plot(data['PCcoefs_mean'][:, :8])
+# plt.xlabel("Generations",fontsize=14)
+# plt.ylabel("Projection Coefficient",fontsize=14)
+# plt.title("Example PC Projections\n(Noise Driven)",fontsize=14)
+# plt.savefig(join(figdir, "Example_PC_cos_curves_noise001.png"))
+# plt.savefig(join(figdir, "Example_PC_cos_curves_noise001.pdf"))
+# plt.legend(["PC%d" % i for i in range(1, 9)])
+# plt.show()
+
+cmap = plt.get_cmap('hsv')
+PCnum2plot = 8
+plt.figure(figsize=[5, 5])
+PCarr = np.arange(1, 76)
+for PCi in range(PCnum2plot):
+    plt.plot(PCarr, data['PCcoefs_mean'][:, PCi], label="PC%d"%(PCi+1),
+             alpha=0.7, lw=1.5, color=cmap(1.0/(PCnum2plot+2)*PCi))
+plt.legend(loc="lower left")
+plt.xlabel("Generations", fontsize=14)
+plt.ylabel("Projected Coefficient", fontsize=14)
+plt.title("Example PC Projections\n(Noise Driven)",fontsize=16)
+plt.savefig(join(figdir, "Example_PC_cos_curves_noise001.png"))
+plt.savefig(join(figdir, "Example_PC_cos_curves_noise001.pdf"))
+plt.show()
+#%%
+"""Supplementary Figure Compare the noise driven evolution and 
+Real evolution per explained varience per PC
+"""
+plt.figure(figsize=[5, 5])
+PCarr = np.arange(1, 75)
+plt.loglog(PCarr, meandf_col['alexnet_.classifier.Linear6_000'][0].expvar,
+           lw=0.0, alpha=0.2, c='r', label="Evolution (N=1050)")
+for layer in meandf_col:
+    for i in range(5):
+        plt.loglog(PCarr, meandf_col[layer][i].expvar,
+               lw=0.2, alpha=0.2, c='r')
+plt.loglog(PCarr, expvar_col[0][:-1],
+               color='k', alpha=0.2, lw=0.2, label="Noise Evol (N=100)")
+for i in range(len(expvar_col)):
+    plt.loglog(PCarr, expvar_col[i][:-1],
+               color='k', alpha=0.2, lw=0.2)
+plt.xlabel("PC number", fontsize=14)
+plt.ylabel("Explained Variance Ratio", fontsize=14)
+plt.title("Explained Variance of PCs of Evol Trajectory\nAlexNet vs Noise Driven", fontsize=18)
+plt.legend(fontsize=14)
+plt.savefig(join(figdir, "PCA_expvar_evol_noise_cmp.png"))
+plt.savefig(join(figdir, "PCA_expvar_evol_noise_cmp.pdf"))
+plt.legend()
+plt.show()
+#%%
+expvar_evol = np.array([meandf_col[layer][i].expvar for i in range(5) for layer in meandf_col])
+expvar_nois = np.array([expvar_col[i][:-1] for i in range(len(expvar_col))])
+#%%
+from scipy.stats import ttest_ind,ttest_rel
+pval_col = [ttest_ind(expvar_evol[:,i],expvar_nois[:,i]).pvalue for i in range(74)]
