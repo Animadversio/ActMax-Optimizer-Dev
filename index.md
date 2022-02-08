@@ -1,8 +1,20 @@
-## Evolutionary Optimizer for Online Neuronal Control
+---
+header-includes:
+  - \usepackage{algorithm2e}
+  - \usepackage{algorithm}
+  - \usepackage{algpseudocode}
+---
+
+## Develop Evolutionary Optimizer for Online Neuronal Control
 
 This is the project page for testing and developing black box optimizers for searching for optimal images for neurons in artifical and biological neurons. 
 
+
+
+<img src="media\Figure_Teaser-01.png" alt="drawing" width="1000px"/>
+
 ## Rationale 
+
 Activation maximization is a popular technique in CNN interpretability study: basically, it search for stimuli that maximize activation of a unit. Then these images that maximize response of a unit represent the coding content of the unit. 
 In visual neuroscience, this philosophy has also been adopted for a while. Researchers can use online recording of neuronal response to [guide image search](https://www.sciencedirect.com/science/article/pii/S0092867419303915) and generate sketches of face or eyes. 
 
@@ -27,61 +39,99 @@ Needless to say, as an optimization problem, this is challenging in three aspect
 Given this constraints, we are motivated to find an optimizer that perform well. 
 
 ## Large-scale Benchmark of Gradient Free Optimizers
+How to find competent optimizers for this problem? Comparing optimizers *in vivo* is hard and time consuming. Thus, we resorted to simulated neurons: CNN units. 
+
+We conducted a large scale *in silico* optimizers "screening" using a set of benchmarks we design. We included units from two popular CNN models ([`AlexNet`](https://papers.nips.cc/paper/2012/hash/c399862d3b9d6b76c8436e924a68c45b-Abstract.html) and adversarially trained [`ResNet50-robust`](https://github.com/MadryLab/robustness)). From each model we included 5 different layers and for each unit we tested with three different noise level (no, low, high noise). 
+
+As for candidates, We first tested 12 gradient-free optimizers as implemented / interfaced by [`nevergrad`](https://github.com/facebookresearch/nevergrad): NGOpt, DE, TwoPointsDE, ES, CMA, RescaledCMA, DiagonalCMA, SQPCMA, PSO, OnePlusOne, TBPSA, and RandomSearch. 
+
+<!-- 
 We first conducted a large scale benchmark of common evolutionary optimizers in their ability to optimize stimuli for visually selective units. 
 
 We used units from pre-trained CNNs as models of visual neuron. For these optimizers, each visual neuron or CNN unit form a different function over the image space, thus it's a different test function for the optimizer. 
-We chose the classic and popular model [`AlexNet`](https://papers.nips.cc/paper/2012/hash/c399862d3b9d6b76c8436e924a68c45b-Abstract.html) and a deeper and adversarially trained model [`ResNet50-robust`](https://github.com/MadryLab/robustness) as benchmark. ResNet50-robust was chosen due to its relative light weight and its higher similarity to the visual representations in the brain (high rank on the [Brain-Score](https://www.brain-score.org/)).
+We chose the classic and popular model [`AlexNet`](https://papers.nips.cc/paper/2012/hash/c399862d3b9d6b76c8436e924a68c45b-Abstract.html) and a deeper and adversarially trained model [`ResNet50-robust`](https://github.com/MadryLab/robustness) as benchmark. ResNet50-robust was chosen due to its relative light weight and its higher similarity to the visual representations in the brain (high rank on the [Brain-Score](https://www.brain-score.org/)). -->
 
-We tested 12 gradient-free optimizers as implemented / interfaced by [`nevergrad`](https://github.com/facebookresearch/nevergrad): NGOpt, DE, TwoPointsDE, ES, CMA, RescaledCMA, DiagonalCMA, SQPCMA, PSO, OnePlusOne, TBPSA, and RandomSearch. 
-
-
-We found that Covariance Matrix Adaptation Evolution Strategy (CMAES) and Diagonal CMAES are the top two algorithms in terms of the highest activation it achieved! We found the same result for units across models and layers that even with the default setting of hyperparameters!
+Surprisingly, we found that Covariance Matrix Adaptation Evolution Strategy (CMA-ES) and Diagonal CMAES really shined in this competition! Unlike normal black box optimization benchmark (BBOB), our functions need to be maximized and lack an obvious upper bound in its value. Thus we normalized the activation achieved by each optimizer by the empirical max for that unit. 
+In the following plot, you can see the normalized activations they achieved for each optimizer. <!-- We found the same result for units across models and layers that even with the default setting of hyperparameters! -->
 ![performance](media\Figure_Nevergrad_benchmark-01.png)
 
-
-
-![runtime](media\optim_runtime_cmp_benchmark_all.png)
-
-
-
-![](media\evolvimg_montage_alexnet_.classifier.Linear6_003-0_midres-01.png)
-
-
-
+Here you can see the optimization traces: achieved activation as a function of function evaluation / image presentation ; or as a function of generations. Given the same final activation, the larger area below the optimization trace the better, as that represents a faster convergence to highly activating images. 
 ![](media\NevergradScoreTracesCmp-01.png)
 
+<!-- ![runtime](media\optim_runtime_cmp_benchmark_all.png)
+ -->
+
+<!-- ![](media\evolvimg_montage_alexnet_.classifier.Linear6_003-0_midres-01.png) -->
 
 
-### Benchmark Specific Type of CMAES Optimizer 
 
 
 
-### Comparison with Previous Method Genetic Algorithm
-Further, the CMA methods consistently out-performed GA in vivo and in silico. 
+<!-- ### Benchmark Specific Type of CMAES Optimizer  -->
+
+
+
+<!-- ### Comparison with Previous Method Genetic Algorithm -->
+
+
+Finally we tested out our candidates *in vivo*! Further, the CMA methods consistently out-performed GA in vivo and in silico. 
 ![](media/Figure_GA_CMA_cmp_vivo_silico-01.png)
 
 
-
-
 ## Geometry of CMA Evolution 
-Given this intriguing success of CMA type optimizer, we further analyzed the geometry of its evolution trajectory to gain insights! 
+So why CMA evolutionary strategy performed SO well? What mechanism made it suitable for our problem?
+
+Our first hypothesis is its namesake, Covariance Matrix Adaptation, which can lead to clever steering strategy in the latent space. However, when we empirically evaluated the covariance matrix throughout evolution, we found that in a high dimensional space, the covariance matrix $C$ changed very little. At the end of the evolution, the covariance could still be well approximated by identity $I$. Thus we precluded covariance matrix updates from the reason for the success.  
+
+
+The other hypothesis are its step size tuning mechanism, and the  alignment with the geometry of the latent space. 
+
+<!-- Given this intriguing success of CMA type optimizer, we further analyzed the geometry of its evolution trajectory to gain insights!  -->
 
 We found the following facts about CMA Evolution: 
 
-* In a high dimensional space, the covariance matrix $C$ changed very little. At the end of the evolution, the covariance could be well approximated by identity $I$. 
+* In a high dimensional space, the covariance matrix $C$ changed very little. At the end of the evolution, the covariance could be well approximated by identity $I$. This precludes 
 * Viewed in the principal components space, the trajectories were sinusoidal curves well fit by Cosine waves. This property is related to a high dimensional random walk. 
 * As a collection, the trajectories preferrentially travel within the top eigen dimensions of the underlying image manifold. 
 * 
 
 ### Sinusoidal Structure 
 ![](media/Figure TrajSinusoidal-01.png)
+
 ### Evolution Trajectory Preferentially Travels in Informative Part of the Space. 
 
 ### Image Space Variance Decay Due to Increased Code Norm.
 
 
 
-## Re-design CMA-ES Optimizer
+## CMA Optimizer Re-design 
+
+
+
+<!-- ```matlab
+Input: Objective $f(.)$, space dimension $d$, radius $R$, 
+population size $B$. Step size decay function $\mu_{dec}(.)$. Learning ratio $lr=1.5$
+
+$t=0$
+Isotropically sample $B$ vectors $z^{(i)}_{0}$ with length $R$ in $\mathbb R^d$ 
+while Not converged
+	Evaluate objective function $f$ for samples $r_i=f(z^{(i)}_{t})$
+	Compute weights $w$ based on the rank of scores $r$. 
+	Weighted average the samples $m_w \gets \sum_i w_i z^{(i)}_{t}/\sum_i w_i$ 
+	Normalize $m_w$ to norm $R$, $m_w\gets Rm_w/\|m_w\|$ 
+	Fetch the current center vector $m_{t}\gets z^{(0)}_{t}$ 
+	Calculate the new center vector $m_{t+1}$ by spherical extrapolation along the arc from $m_{t}$ to $m_w$ by $lr$.
+	Sample $B$ isotropic random vectors, e.g. $u_i\sim \mathcal N(0,I^d)$. 
+	Project $u_i$ to the tangent space of new center $m_{t+1}$. $v_i\gets u_i - m_{t+1}m_{t+1}^Tu_i/\|m_{t+1}\|^2$ 
+	Get current angular step size $\mu \gets \mu_{dec}(t)$        
+	Get new samples $z_{t+1}^{(i)}$ by exponential map from the center $m_{t+1}$ along the tangent vectors $v_i$ with angle $\mu$ 
+	Add the new center vector to the population $z_{t+1}^{(0)} \gets m_{t+1}$	$t\gets t+1$
+endwhile
+``` -->
+
+
+
+
 
 ### Support or Contact
 Contact binxu_wang@hms.harvard.edu if you have more questions about our work!
