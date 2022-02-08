@@ -86,11 +86,15 @@ What else? Another hypothesis is its **step size tuning mechanism**. Just like i
 
 We noticed our generator space exhibit a spherical structure: The norm of a vector $z$ controls the contrast of the generated images; thus the perceptual distance between vectors were better approximated by their angle instead of the linear euclidean distance. 
 
-![](media/Figure_GAN_sphere_geom_demo-01)
+![](media/Figure_GAN_sphere_geom_demo-01.png)
+
+Moreover, we noticed that the norm of the latent code increased proportional to the square root of generations $ \|z\|\propto \sqrt t$ , which is the classic property of diffusion or random walk. Due to the spherical geometry and the increased norm, even though the optimizer explored with the similar standard deviation in latent space, the image variation decreased consistently towards the end of the evolution. 
+
+![](media/Figure_L2_angle_LPIPS_distcmp-02.png)
+
+We call this **automatic step size tuning mechanism** and we found it crucial for a good performance of the optimizer. 
 
 
-
- and the  alignment with the geometry of the latent space. 
 
 <!-- Given this intriguing success of CMA type optimizer, we further analyzed the geometry of its evolution trajectory to gain insights!  -->
 
@@ -103,7 +107,11 @@ All in all, we found the following facts about CMA Evolution both *in vivo* and 
 * As a collection (across target units), the trajectories preferrentially travel within the top eigen dimensions of the underlying image manifold. Further, the distance travelled along each eigenvector statistically correlates with the (log) eigenvalue. 
 
 <!-- ### Sinusoidal Structure  -->
-![](media/Figure_TrajSinusoidal-01.png)
+![](media/Figure_TrajSinusoidal_Prune-01.png)
+
+
+
+![](media/Figure_EigenspaceAlignment_new_prune_addregline_clear-01.png)
 
 <!-- ### Evolution Trajectory Preferentially Travels in Informative Part of the Space. 
 
@@ -117,5 +125,5 @@ All in all, we found the following facts about CMA Evolution both *in vivo* and 
 
 
 
-### Support or Contact
+### Contact
 Contact binxu_wang@hms.harvard.edu if you have more questions about our work!
