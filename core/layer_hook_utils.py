@@ -4,6 +4,7 @@ import torch.nn as nn
 import torchvision
 from torchvision import models
 from torchvision import transforms
+from collections import defaultdict
 
 # Readable names for classic CNN layers in torchvision model implementation.
 layername_dict ={"alexnet":["conv1", "conv1_relu", "pool1",
@@ -252,9 +253,16 @@ class featureFetcher:
         self.hooks[target_name] = hook_h
         return hook_h
 
+    def remove_hook(self):
+        for name, hook in self.hooks.items():
+            hook.remove()
+        print("Deconmissioned all the hooks")
+        return
+
     def __del__(self):
         for name, hook in self.hooks.items():
             hook.remove()
+        print("Deconmissioned all the hooks")
         return
 
     def __getitem__(self, key):
@@ -277,5 +285,64 @@ class featureFetcher:
         #             self.activations[name] = output.detach()[:, unit[0], unit[1], unit[2]]
         #         elif len(output.shape) == 2:
         #             self.activations[name] = output.detach()[:, unit[0]]
+        return hook
+
+
+class featureFetcher_recurrent:
+    """ Light weighted modular feature fetcher, simpler than TorchScorer. 
+    Useful for fetching features from recurrent neural net, where one node will be passed through 
+    several times. 
+    """
+    def __init__(self, model, input_size=(3, 224, 224), device="cuda", print_module=True):
+        self.model = model.to(device)
+        module_names, module_types, module_spec = get_module_names(model, input_size, device=device, show=print_module)
+        self.module_names = module_names
+        self.module_types = module_types
+        self.module_spec = module_spec
+        self.activations = defaultdict(list)
+        self.hooks = {}
+        self.device = device
+
+    def record(self, module, submod, key="score", return_input=False, ingraph=False):
+        """
+        submod:
+        """
+        hook_fun = self.get_activation(key, ingraph=ingraph, return_input=return_input)
+        if submod is not None:
+            hook_h = getattr(getattr(self.model, module), submod).register_forward_hook(hook_fun)
+        else:
+            hook_h = getattr(self.model, module).register_forward_hook(hook_fun)
+        #register_hook_by_module_names(target_name, hook_fun, self.model, device=self.device)
+        self.hooks[key] = hook_h
+        return hook_h
+
+    def remove_hook(self):
+        for name, hook in self.hooks.items():
+            hook.remove()
+        print("Deconmissioned all the hooks")
+        return
+
+    def __del__(self):
+        for name, hook in self.hooks.items():
+            hook.remove()
+        print("Deconmissioned all the hooks")
+        return
+
+    def __getitem__(self, key):
+        try:
+            return self.activations[key]
+        except KeyError:
+            raise KeyError
+
+    def get_activation(self, name, ingraph=False, return_input=False):
+        """If returning input, it may return a list or tuple of things """
+        if return_input:
+            def hook(model, input, output):
+                self.activations[name].append(input if ingraph else [inp.detach().cpu() for inp in input])
+        else:
+            def hook(model, input, output):
+                # print("get activation hook")
+                self.activations[name].append(output if ingraph else output.detach().cpu())
+
         return hook
 
