@@ -22,6 +22,7 @@ mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 pd.options.display.max_columns = 10
 pd.options.display.max_colwidth = 200
+figdir = r"E:\OneDrive - Harvard University\GECCO2022\Figures\CMABenchmark"
 #%%
 def load_format_data_cma(Droot, sumdir="summary"):
     maxobj_col = []
@@ -86,6 +87,29 @@ def load_format_data_cma(Droot, sumdir="summary"):
 
 dataroot = r"E:\Cluster_Backup\cma_optim_cmp"
 maxobj_df, cleanobj_df, runtime_df, codenorm_df, optimlist = load_format_data_cma(dataroot, sumdir="summary")
+#%%
+def load_written_stats(sumdir = "summary"):
+    maxobj_df = pd.read_csv(join(sumdir, "CMA_benchmark_maxobj_summary.csv"),index_col=0)
+    cleanobj_df = pd.read_csv(join(sumdir, "CMA_benchmark_cleanobj_summary.csv"),index_col=0)
+    runtime_df = pd.read_csv(join(sumdir, "CMA_benchmark_runtime_summary.csv"),index_col=0)
+    codenorm_df = pd.read_csv(join(sumdir, "CMA_benchmark_codenorm_summary.csv"),index_col=0)
+    optimlist = [colnm for colnm in maxobj_df if colnm not in ['netname', 'layername', 'channum', 'noise_level', 'RND', 'expdir']]
+    return maxobj_df, cleanobj_df, runtime_df, codenorm_df, optimlist
+
+maxobj_df,cleanobj_df,  runtime_df, codenorm_df, optimlist = load_written_stats("summary")
+#%%
+layerrenamedict = { '.features.ReLU4':"conv2",
+                    '.features.ReLU7':"conv3",
+                    '.features.ReLU9':"conv4",
+                    '.features.ReLU11':"conv5",
+                    '.classifier.ReLU5':"fc6",
+                    '.classifier.ReLU2':"fc7",
+                    '.classifier.Linear6':"fc8",}
+
+layerrename_f = lambda s: layerrenamedict[s]
+cleanobj_df["layershortname"] = cleanobj_df.layername.apply(layerrename_f)
+maxobj_df["layershortname"] = maxobj_df.layername.apply(layerrename_f)
+runtime_df["layershortname"] = maxobj_df.layername.apply(layerrename_f)
 
 #%% Create the normalized clean score dataframe
 normobj_df = cleanobj_df.copy()
@@ -101,21 +125,14 @@ for layer in layers:
 #%%
 normobj_df.to_csv(join("summary", "CMA_benchmark_normcleanobj_summary.csv"))
 #%%
-maxobj_df[optimlist].describe()
+
+
 #%%
 cleanobj_df[optimlist][cleanobj_df.noise_level==0.0].describe().T
 cleanobj_df[optimlist][cleanobj_df.noise_level==0.2].describe().T
 cleanobj_df[optimlist][cleanobj_df.noise_level==0.5].describe().T
 #%% Summarize the layer-wise activations
-layerrenamedict = { '.features.ReLU4':"conv2",
-                    '.features.ReLU7':"conv3",
-                    '.features.ReLU9':"conv4",
-                    '.features.ReLU11':"conv5",
-                    '.classifier.ReLU5':"fc6",
-                    '.classifier.ReLU2':"fc7",
-                    '.classifier.Linear6':"fc8",}
 
-layerrename_f = lambda s: layerrenamedict[s]
 cleanobj_df["layershortname"] = cleanobj_df.layername.apply(layerrename_f)
 maxobj_df["layershortname"] = maxobj_df.layername.apply(layerrename_f)
 runtime_df["layershortname"] = maxobj_df.layername.apply(layerrename_f)
@@ -220,7 +237,6 @@ for ns in [0.0,0.2,0.5]:
             print(f"All layer noise {ns:.1f}, Sph_exp vs {optnm} {tval:.3f}({pval:.2e})")
 
 #%% Noise free and noise
-figdir = r"E:\OneDrive - Harvard University\GECCO2022\Figures\CMABenchmark"
 normdf_long = normobj_df.melt(id_vars=['netname', 'layername', 'channum',
                          'noise_level', 'RND', 'expdir', 'layershortname'],
                   value_vars=optimlist, var_name="optimnm", value_name="score")
@@ -270,3 +286,55 @@ GA_CMA_ratio_pool = normobj_df.mean()["Genetic"] / normobj_df.mean()["CholeskyCM
 for optnm in ["CholeskyCMAES", "pycma", "pycmaDiagonal"]:
     tval,pval = ttest_ind(normobj_df["ZOHA_Sphere_exp"], normobj_df[optnm])
     print(f"t_{{2098}}={tval:.2f},p={pval:.1e}\\times 10^{{}} for {optnm}")
+
+#%% Test the interaction effect between layer and optimizer
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+layernumdict = { '.features.ReLU4':2,
+                    '.features.ReLU7':3,
+                    '.features.ReLU9':4,
+                    '.features.ReLU11':5,
+                    '.classifier.ReLU5':6,
+                    '.classifier.ReLU2':7,
+                    '.classifier.Linear6':8,}
+normobj_df["layernum"] = normobj_df.layername.apply(lambda s:layernumdict[s])
+#%% 'CholeskyCMAES',
+normdf_long_part = normobj_df.melt(id_vars=['netname', 'layername', "layernum",
+             'layershortname', 'channum', 'noise_level', 'RND', 'expdir', ],
+                  value_vars=['pycma', 'pycmaDiagonal',],
+                  var_name="optimnm", value_name="score")
+
+#%% Test for interaction
+model = ols('score ~ C(optimnm) + noise_level + layernum + C(optimnm):layernum + C(optimnm):noise_level', data=normdf_long_part).fit()
+result = sm.stats.anova_lm(model, typ=2, )
+print(result)
+model = ols('score ~ C(optimnm) + C(noise_level) + layernum + C(optimnm):layernum + C(optimnm):C(noise_level)', data=normdf_long_part).fit()
+result = sm.stats.anova_lm(model, typ=2, )
+print(result)
+#%%
+normdf_long_part = normobj_df.melt(id_vars=['netname', 'layername', "layernum",
+             'layershortname', 'channum','noise_level', 'RND', 'expdir', ],
+                  value_vars=['pycma', 'pycmaDiagonal',],
+                  var_name="optimnm", value_name="score")
+
+#%% Test for interaction
+model = ols('score ~ C(optimnm) + noise_level + layernum + C(optimnm):layernum + C(optimnm):noise_level', data=normdf_long_part).fit()
+result = sm.stats.anova_lm(model, typ=2, )
+print(result)
+
+model = ols('score ~ C(optimnm) + C(noise_level) + layernum + C(optimnm):layernum + C(optimnm):C(noise_level)', data=normdf_long_part).fit()
+result = sm.stats.anova_lm(model, typ=2, )
+print(result)
+#%%
+normdf_long_part = normobj_df.melt(id_vars=['netname', 'layername', "layernum",
+             'layershortname', 'channum','noise_level', 'RND', 'expdir', ],
+                  value_vars=['CholeskyCMAES', 'pycma', 'pycmaDiagonal',],
+                  var_name="optimnm", value_name="score")
+
+model = ols('score ~ C(optimnm)', data=normdf_long_part).fit()
+result = sm.stats.anova_lm(model, typ=2, )
+print(result)
+
+model = ols('score ~ C(optimnm) + noise_level + layernum + C(optimnm):layernum + C(optimnm):noise_level', data=normdf_long_part).fit()
+result = sm.stats.anova_lm(model, typ=2, )
+print(result)
