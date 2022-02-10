@@ -74,6 +74,7 @@ class LossTraceLogger:
         """Loads data from the log file"""
         losses = np.array([d["#loss"] for d in self.data_col])
         return losses
+
 #%%
 from core.GAN_utils import upconvGAN
 from core.CNN_scorers import TorchScorer
@@ -117,15 +118,6 @@ df_all = pd.DataFrame()
 for optim in loss_arr_col:
     df = pd.read_csv(r"ng_logger/%s_optimlog.csv"%optim)
     df_all[optim] = - df["#loss"]
-#%%
-sns.scatterplot(x=np.arange(1,3001),y=df_all,data=df_all)
-plt.show()
-#%% All sample scatter plot
-plt.figure(figsize=[8,8])
-for optim in df_all:
-    plt.scatter(np.arange(1,3001), df_all[optim], s=7, alpha=0.3, label=optim)
-plt.legend()
-plt.show()
 
 #%% max value plot
 def plot_traj_cmp(df_all, optimorder=None, scatter=True):

@@ -108,9 +108,9 @@ class CholeskyCMAES:
         # Note to confirm with other code, this part is transposed.
         # set short name for everything to simplify equations
         N = self.space_dimen
-        lambda_, mu, mueff, chiN = self.lambda_, self.mu, self.mueff, self.chiN
-        cc, cs, c1, damps = self.cc, self.cs, self.c1, self.damps
-        sigma, A, Ainv, ps, pc, = self.sigma, self.A, self.Ainv, self.ps, self.pc,
+        # lambda_, mu, mueff, chiN = self.lambda_, self.mu, self.mueff, self.chiN
+        # cc, cs, c1, damps = self.cc, self.cs, self.c1, self.damps
+        # sigma, A, Ainv, ps, pc, = self.sigma, self.A, self.Ainv, self.ps, self.pc,
         # Sort by fitness and compute weighted mean into xmean
         if self.maximize is False:
             code_sort_index = np.argsort( scores)  # add - operator it will do maximization.
@@ -120,39 +120,39 @@ class CholeskyCMAES:
         if self._istep == 0:
             # Population Initialization: if without initialization, the first xmean is evaluated from weighted average all the natural images
             if self.init_x is None:
-                select_n = len(code_sort_index[0:mu])
+                select_n = len(code_sort_index[0:self.mu])
                 temp_weight = self.weights[:, :select_n] / np.sum(self.weights[:, :select_n]) # in case the codes is not enough
-                self.xmean = temp_weight @ codes[code_sort_index[0:mu], :]
+                self.xmean = temp_weight @ codes[code_sort_index[0:self.mu], :]
             else:
                 self.xmean = self.init_x
         else:
             self.xold = self.xmean
-            self.xmean = self.weights @ codes[code_sort_index[0:mu], :]  # Weighted recombination, new mean value
+            self.xmean = self.weights @ codes[code_sort_index[0:self.mu], :]  # Weighted recombination, new mean value
             # Cumulation statistics through steps: Update evolution paths
-            randzw = self.weights @ self.randz[code_sort_index[0:mu], :]
-            ps = (1 - cs) * ps + sqrt(cs * (2 - cs) * mueff) * randzw
-            pc = (1 - cc) * pc + sqrt(cc * (2 - cc) * mueff) * randzw @ A
+            randzw = self.weights @ self.randz[code_sort_index[0:self.mu], :]
+            self.ps = (1 - self.cs) * self.ps + sqrt(self.cs * (2 - self.cs) * self.mueff) * randzw
+            self.pc = (1 - self.cc) * self.pc + sqrt(self.cc * (2 - self.cc) * self.mueff) * randzw @ self.A
             # Adapt step size sigma
-            sigma = sigma * exp((cs / damps) * (norm(ps) / chiN - 1))
+            self.sigma = self.sigma * exp((self.cs / self.damps) * (norm(self.ps) / self.chiN - 1))
             # self.sigma = self.sigma * exp((self.cs / self.damps) * (norm(ps) / self.chiN - 1))
-            if verbosity: print("sigma: %.2f" % sigma)
+            if verbosity: print("sigma: %.2f" % self.sigma)
             # Update A and Ainv with search path
             if self.counteval - self.eigeneval > self.update_crit:  # to achieve O(N ^ 2) do decomposition less frequently
                 self.eigeneval = self.counteval
                 t1 = time.time()
-                v = pc @ Ainv
+                v = self.pc @ self.Ainv
                 normv = v @ v.T
                 # Directly update the A Ainv instead of C itself
-                A = sqrt(1 - c1) * A + sqrt(1 - c1) / normv * (
-                            sqrt(1 + normv * c1 / (1 - c1)) - 1) * v.T @ pc  # FIXME, dimension error, # FIXED aug.13th
-                Ainv = 1 / sqrt(1 - c1) * Ainv - 1 / sqrt(1 - c1) / normv * (
-                            1 - 1 / sqrt(1 + normv * c1 / (1 - c1))) * Ainv @ v.T @ v
+                self.A = sqrt(1 - self.c1) * self.A + sqrt(1 - self.c1) / normv * (
+                            sqrt(1 + normv * self.c1 / (1 - self.c1)) - 1) * v.T @ self.pc  # FIXME, dimension error, # FIXED aug.13th
+                self.Ainv = 1 / sqrt(1 - self.c1) * self.Ainv - 1 / sqrt(1 - self.c1) / normv * (
+                            1 - 1 / sqrt(1 + normv * self.c1 / (1 - self.c1))) * self.Ainv @ v.T @ v
                 t2 = time.time()
                 print("A, Ainv update! Time cost: %.2f s" % (t2 - t1))
         # Generate new sample by sampling from Gaussian distribution
         # new_samples = zeros((self.lambda_, N))
         self.randz = randn(self.lambda_, N)  # save the random number for generating the code.
-        new_samples = self.xmean + sigma * self.randz @ A
+        new_samples = self.xmean + self.sigma * self.randz @ self.A
         self.counteval += self.lambda_
         # for k in range(self.lambda_):
         #     new_samples[k:k + 1, :] = self.xmean + sigma * (self.randz[k, :] @ A)  # m + sig * Normal(0,C)
@@ -160,7 +160,7 @@ class CholeskyCMAES:
         #     # Stretch the guassian hyperspher with D and transform the
         #     # ellipsoid by B mat linear transform between coordinates
         #     self.counteval += 1
-        self.sigma, self.A, self.Ainv, self.ps, self.pc = sigma, A, Ainv, ps, pc,
+        # self.sigma, self.A, self.Ainv, self.ps, self.pc = sigma, A, Ainv, ps, pc,
         self._istep += 1
         return new_samples
 

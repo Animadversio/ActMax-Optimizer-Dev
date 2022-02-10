@@ -16,6 +16,7 @@ mpl.rcParams['pdf.fonttype'] = 42 # set font for export to pdfs
 mpl.rcParams['ps.fonttype'] = 42
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
+figdir = r"E:\OneDrive - Harvard University\GECCO2022\Figures\NGBenchmark"
 #%%
 def load_format_data(Droot, sumdir="summary"):
     maxobj_col = []
@@ -80,6 +81,11 @@ def load_written_stats(sumdir = "summary"):
 
 maxobj_df, runtime_df, codenorm_df, optimlist = load_written_stats("summary")
 #%%
+optimorder = ['CMA','DiagonalCMA','SQPCMA','RescaledCMA','ES',
+             'NGOpt','DE','TwoPointsDE',
+             'PSO','OnePlusOne','TBPSA',
+             'RandomSearch']
+#%%
 normobj_df = maxobj_df.copy()
 layers = sorted(maxobj_df.layername.unique())
 for layer in layers:
@@ -90,7 +96,15 @@ for layer in layers:
         normalizer = subtb[optimlist].max().max()
         # normalize to the highest clean score ever achieved for this unit
         normobj_df.loc[msk, optimlist] = normobj_df.loc[msk, optimlist] / normalizer
-#%%
+normobj_df.to_csv(join("summary", "ng_benchmark_normmaxobj_summary.csv"))
+#%% Print the run time average separated by CNN model
+runtime_sumtab = pd.concat((runtime_df.groupby("netname").mean()[optimorder],
+           runtime_df.groupby("netname").std()[optimlist]),axis=0)
+runtime_sumtab_order = runtime_sumtab.iloc[[0,2,1,3]]
+runtime_sumtab_order.to_csv(join("summary", "ng_benchmark_export_runtime_summary.csv"))
+# runtime_sumtab
+
+#%% Layer and noise level separated table of normobj_df
 layerrenamedict = { '.features.ReLU4':"conv2",
                     '.features.ReLU7':"conv3",
                     '.features.ReLU9':"conv4",
@@ -115,6 +129,38 @@ normobj_sumtab = normobj_df.groupby(["layershortname", "noise_level"]).mean()[op
 maxobj_sumtab = maxobj_df.groupby(["layershortname", "noise_level"]).mean()[optimorder]
 normobj_sumtab.to_csv(join("summary", "ng_benchmark_export_normobj_summary.csv"))
 maxobj_sumtab.to_csv(join("summary", "ng_benchmark_export_maxobj_summary.csv"))
+
+#%%
+normalizer = "unitmax"
+msklabel = "all"
+plt.figure(figsize=[8, 6])
+sns.boxplot(data=normobj_df, order=optimorder, width=0.7)
+# sns.violinplot(data=normmaxobj_df[clean_msk], order=optimorder, width=1.1)
+plt.xticks(rotation=25)
+plt.ylabel("Activation (normalized by %s)"%normalizer)
+plt.title("Optimizer Comparsion for %s"%msklabel)
+plt.savefig(join(figdir, "optim_cmp_benchmark_%s_%s.png"%(normalizer, msklabel)))
+plt.savefig(join(figdir, "optim_cmp_benchmark_%s_%s.pdf"%(normalizer, msklabel)))
+plt.show()
+#%%
+plt.figure(figsize=[8, 6])
+sns.violinplot(data=normobj_df, order=optimorder, width=1.2)
+plt.xticks(rotation=25)
+plt.ylabel("Activation (normalized by %s)"%normalizer)
+plt.title("Optimizer Comparsion for %s"%msklabel)
+plt.savefig(join(figdir, "optim_cmp_benchmark_violin_%s_%s.png"%(normalizer, msklabel)))
+plt.savefig(join(figdir, "optim_cmp_benchmark_violin_%s_%s.pdf"%(normalizer, msklabel)))
+plt.show()
+#%%
+plt.figure(figsize=[8, 6])
+sns.boxplot(data=runtime_df, order=optimorder, width=0.7)
+# sns.violinplot(data=normmaxobj_df[clean_msk], order=optimorder, width=1.1)
+plt.xticks(rotation=25)
+plt.ylabel("Runtime")
+plt.title("Optimizer Runtime Comparsion")
+plt.savefig(join(figdir, "optim_runtime_cmp_benchmark_all.png"))
+plt.savefig(join(figdir, "optim_runtime_cmp_benchmark_all.pdf"))
+plt.show()
 #%%
 from scipy.stats import ttest_rel, ttest_ind, ttest_1samp
 def ttest_best_method(normobj_df, optimlist, print_tstat=False):
@@ -159,7 +205,6 @@ def ttest_best_method(normobj_df, optimlist, print_tstat=False):
 
 
 ttest_best_method(normobj_df, optimlist, True)
-#%%
 
 #%%
 Anet_msk = maxobj_df.netname == "alexnet"
