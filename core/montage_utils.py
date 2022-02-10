@@ -175,3 +175,12 @@ def crop_from_montage(img, imgid:tuple=(0,0), imgsize=256, pad=2):
     img_crop = img[pad + (pad+imgsize)*ri:pad + imgsize + (pad+imgsize)*ri, \
                    pad + (pad+imgsize)*ci:pad + imgsize + (pad+imgsize)*ci, :]
     return img_crop
+
+
+def show_tsrbatch(imgtsr, nrow=8):
+    ToPILImage()(make_grid(imgtsr.cpu(), nrow=nrow)).show()
+
+
+def PIL_tsrbatch(imgtsr, nrow=8):
+    mtg = ToPILImage()(make_grid(imgtsr.cpu(), nrow=nrow))
+    return mtg
