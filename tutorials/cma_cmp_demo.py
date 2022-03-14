@@ -1,4 +1,5 @@
 """Tutorial code for cma type algorithm benchmarking"""
+# TODO: clean up this demo
 import cma
 import nevergrad as ng
 import torch
