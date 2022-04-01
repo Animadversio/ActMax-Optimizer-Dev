@@ -80,7 +80,7 @@ Thus we concluded that covariance matrix updates was not a reason for the succes
 
 What else? Another hypothesis is its **step size tuning mechanism**. Just like in Deep Learning, the learning rate of parameters are usually turned down gradually. Here, the step size parameter also needs to be tuned properly. 
 
-We noticed our generator space exhibit a spherical structure: The norm of a vector $z$ controls the contrast of the generated images; thus the perceptual distance between vectors were better approximated by their angle instead of the linear euclidean distance. 
+We noticed our generator space exhibits a spherical structure: The norm of a vector $$z$$ controls the contrast of the generated images; thus the perceptual distance between vectors were better approximated by their angle instead of the linear euclidean distance. 
 
 ![](media/Figure_GAN_sphere_geom_demo-01.png)
 
@@ -88,35 +88,33 @@ Moreover, we noticed that the norm of the latent code increased proportional to 
 
 ![](media/Figure_L2_angle_LPIPS_distcmp-02.png)
 
-We call this **automatic step size tuning mechanism** and we found it crucial for a good performance of the optimizer. 
-
+This intriguing interplay between random walk and geometry of the generative space induced this **automatic step size tuning mechanism**. We found it crucial for a good performance of the optimizer. 
 
 
 <!-- Given this intriguing success of CMA type optimizer, we further analyzed the geometry of its evolution trajectory to gain insights!  -->
 
 All in all, we found the following facts about CMA Evolution both *in vivo* and *in silico* (applied to CholeskyCMA and original CMA). 
 
-* In a high dimensional space, the covariance matrix $C$ is updated negligibly. 
-* The distance travelled in the latent space $\|z-z_0\|$ scaled as a square root of the generation number. $\|z-z_0\|^2\propto t$
+* In a high dimensional space, the covariance matrix $$C$$ is updated negligibly. 
+* The distance travelled in the latent space $$\|z-z_0\|$$ scaled as a square root of the generation number. $$\|z-z_0\|^2\propto t$$
 * The variance among images in a generation decreases, due to the increasing vector norm and the decreasing sample standard deviation through out evolution. 
-* When projected into the principal axis, the trajectories were sinusoidal curves well fit by Cosine waves. This property is related to a [high dimensional random walk](https://proceedings.neurips.cc/paper/2018/hash/7a576629fef88f3e636afd33b09e8289-Abstract.html). (Also see [my post](https://animadversio.github.io/academic_notes/pca-of-high-dimensional-trajectories) explaining the math behind)
-* As a collection (across target units), the trajectories preferrentially travel within the top eigen dimensions of the underlying image manifold. Further, the distance travelled along each eigenvector statistically correlates with the (log) eigenvalue. 
-
-<!-- ### Sinusoidal Structure  -->
+* When projected into the principal axis, the trajectories were sinusoidal curves well fit by Cosine waves. This property is related to a [high dimensional random walk](https://proceedings.neurips.cc/paper/2018/hash/7a576629fef88f3e636afd33b09e8289-Abstract.html). (Also see [my post](https://animadversio.github.io/academic_notes/pca-of-high-dimensional-trajectories) which explains the intriguing math behind)
 ![](media/Figure_TrajSinusoidal_Prune-01.png)
-
-
-
+* As a collection (across target units), the trajectories preferrentially travel within the top eigen dimensions of the underlying image manifold. Further, the distance travelled along each eigenvector statistically correlates with the (log) eigenvalue. 
 ![](media/Figure_EigenspaceAlignment_new_prune_addregline_clear-01.png)
 
+<!-- ### Sinusoidal Structure  -->
 <!-- ### Evolution Trajectory Preferentially Travels in Informative Part of the Space. 
-
 ### Image Space Variance Decay Due to Increased Code Norm.
-
  -->
 
 ## CMA Optimizer Re-designed
+Given this understanding, we wanted to redesign the CMA algorithm that utilizes these principles. 
+* We should search on a spherical shell in the latent space, since the latent vectors during GAN training were mostly sampled from the shell -- High dimensional Gaussian variables have a highly consistant norm. 
+* We need to build in a "manual" step size tuning mechanism, since the search is fixed on a sphere and the automatic tuning no longer happens. Here we make the angular step size decay as exponentially. 
+* 
 
+Surprisingly 
 
 
 
