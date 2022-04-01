@@ -4,13 +4,8 @@ header-includes:
   - \usepackage{algorithm}
   - \usepackage{algpseudocode}
 usemathjax: true
+title: Develop High-Performance Evolutionary Algorithms for Online Neuronal Control
 ---
-
-## Develop Evolutionary Optimizer for Online Neuronal Control
-
-This is the project page for testing and developing black box optimizers for searching for optimal images for neurons in artifical and biological neurons. 
-
-
 
 <img src="media\Figure_Teaser-01.png" alt="drawing" width="1000px"/>
 
