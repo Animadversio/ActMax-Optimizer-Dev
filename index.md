@@ -119,7 +119,7 @@ Given this understanding, we wanted to redesign the CMA algorithm that utilizes 
 Putting all of these together, we got our *de novo* Sphere CMA algorithm, the sampling and update procedure is visualized in this schematics. 
 ![](media/Figure_SphereCMA_newrender-01.png)
 
-Surprisingly, this algorithm outperformed previous CMA algorithms *in silico*, esp. in low noise and noise-free scenario. 
+Surprisingly, this algorithm outperformed previous CMA algorithms *in silico*: increased the max activation by 7% across all conditions. Especially, in low noise and noise-free scenario, it's the best algorithm across all layers and models. This result further confirmed our understanding and led to simplification and improvement of performance. 
 
 ### Contact
 Contact binxu_wang@hms.harvard.edu if you have more questions about our work!
