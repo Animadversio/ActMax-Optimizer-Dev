@@ -110,14 +110,16 @@ All in all, we found the following facts about CMA Evolution both *in vivo* and 
 
 ## CMA Optimizer Re-designed
 Given this understanding, we wanted to redesign the CMA algorithm that utilizes these principles. 
-* We should search on a spherical shell in the latent space, since the latent vectors during GAN training were mostly sampled from the shell -- High dimensional Gaussian variables have a highly consistant norm. 
+
+* We should search on a spherical shell in the latent space. The latent vectors used during GAN training were mostly sampled from the shell -- since high dimensional Gaussian variables have a highly consistant norm. 
+* As the covariance matrix updates don't seem to help search, we make the optimizer explore isotropically on the sphere. 
+* Specifically we sample with isotropic Gaussian in the tangent space and project these exploration vectors onto the sphere. 
 * We need to build in a "manual" step size tuning mechanism, since the search is fixed on a sphere and the automatic tuning no longer happens. Here we make the angular step size decay as exponentially. 
-* 
 
-Surprisingly 
+Putting all of these together, we got our *de novo* Sphere CMA algorithm, the sampling and update procedure is visualized in this schematics. 
+![](media/Figure_SphereCMA_newrender-01.png)
 
-
-
+Surprisingly, this algorithm outperformed previous CMA algorithms *in silico*, esp. in low noise and noise-free scenario. 
 
 ### Contact
 Contact binxu_wang@hms.harvard.edu if you have more questions about our work!
