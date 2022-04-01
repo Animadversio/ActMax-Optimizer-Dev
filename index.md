@@ -3,7 +3,7 @@ header-includes:
   - \usepackage{algorithm2e}
   - \usepackage{algorithm}
   - \usepackage{algpseudocode}
-usemathjax: false
+# usemathjax: false
 ---
 ## Develop High-Performance Evolutionary Algorithms for Online Neuronal Control
 <img src="media\Figure_Teaser-01.png" alt="drawing" width="1000px"/>
