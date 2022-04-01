@@ -3,6 +3,7 @@ header-includes:
   - \usepackage{algorithm2e}
   - \usepackage{algorithm}
   - \usepackage{algpseudocode}
+usemathjax: true
 ---
 
 ## Develop Evolutionary Optimizer for Online Neuronal Control
