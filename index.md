@@ -4,9 +4,8 @@ header-includes:
   - \usepackage{algorithm}
   - \usepackage{algpseudocode}
 usemathjax: true
-title: Develop High-Performance Evolutionary Algorithms for Online Neuronal Control
 ---
-
+## Develop High-Performance Evolutionary Algorithms for Online Neuronal Control
 <img src="media\Figure_Teaser-01.png" alt="drawing" width="1000px"/>
 
 ## Rationale 
@@ -35,7 +34,7 @@ Needless to say, as an optimization problem, this is challenging in three aspect
 Given this constraints, we are motivated to find an optimizer that perform well. 
 
 ## Large-scale Benchmark of Gradient Free Optimizers
-How to find competent optimizers for this problem? Comparing optimizers *in vivo* is hard and time consuming. Thus, we resorted to simulated neurons: CNN units. 
+How to find competent optimizers for this problem? Comparing optimizers *in vivo* is hard and time consuming. So, we resorted to simulated neurons: CNN units. 
 
 We conducted a large scale *in silico* optimizers "screening" using a set of benchmarks we design. We included units from two popular CNN models ([`AlexNet`](https://papers.nips.cc/paper/2012/hash/c399862d3b9d6b76c8436e924a68c45b-Abstract.html) and adversarially trained [`ResNet50-robust`](https://github.com/MadryLab/robustness)). From each model we included 5 different layers and for each unit we tested with three different noise level (no, low, high noise). Unlike normal black box optimization benchmark (BBOB) which aims at minimize, our functions need to be maximized and lack an obvious upper bound in its value. Thus we normalized the activation achieved by each optimizer by the empirical max for that unit. 
 
