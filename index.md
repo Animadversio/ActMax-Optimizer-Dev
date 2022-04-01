@@ -3,7 +3,7 @@ header-includes:
   - \usepackage{algorithm2e}
   - \usepackage{algorithm}
   - \usepackage{algpseudocode}
-# usemathjax: false
+usemathjax: false
 ---
 ## Develop High-Performance Evolutionary Algorithms for Online Neuronal Control
 <img src="media\Figure_Teaser-01.png" alt="drawing" width="1000px"/>
@@ -51,7 +51,7 @@ Surprisingly, we found that Covariance Matrix Adaptation Evolution Strategy (CMA
 
 ![performance](media/Figure_Nevergrad_benchmark-01.png)
 
-Here you can see the optimization traces: achieved activation as a function of image presentation ; or as a function of generations. Given the same final activation, the larger area below the optimization trace the better, as that represents a faster convergence to highly activating images. 
+Here you can see the optimization traces: achieved activation as a function of image presentation ; or as a function of generations. Given the same final activation, the larger area below the optimization trace the better, since that represents a faster convergence to highly activating images. 
 
 ![](media/NevergradScoreTracesCmp-01.png)
 
@@ -65,8 +65,9 @@ Here you can see the optimization traces: achieved activation as a function of i
 
 
 <!-- ### Comparison with Previous Method Genetic Algorithm -->
+After another round between different variants of CMA algorithms, we chose Cholesky CMA-ES as our candidate. Finally, we tested out Cholesky CMA-ES *in vivo*! We found the CMA methods consistently out-performed GA *in vivo* and *in silico*. 
 
-Finally we tested out our candidates Cholesky CMA-ES *in vivo*! We found the CMA methods consistently out-performed GA *in vivo* and *in silico*. 
+
 ![](media/Figure_GA_CMA_cmp_vivo_silico-01.png)
 
 
