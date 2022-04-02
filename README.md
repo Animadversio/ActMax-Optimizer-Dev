@@ -47,7 +47,7 @@ Exp.save_last_gen()
 <!-- `conda install --channel cma-es cma` 
 `pip install pyswarms`  -->
  
-Versions. `nevergrad 0.4.3` seems to change the default behavior, all our benchmarks were done using the following version of `cma` and `nevergrad`
+**Versions**: `nevergrad 0.4.3` seems to change the default behavior, all our benchmarks were done using the following version of `cma` and `nevergrad`
 
 * `cma.__version__=='3.0.3  $Revision: 4430 $ $Date: 2020-04-21 01:19:04 +0200 (Tue, 21 Apr 2020) $'`
 * `ng.__version__=='0.4.2.post5'`
