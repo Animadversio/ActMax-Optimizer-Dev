@@ -32,7 +32,7 @@ Exp.visualize_trajectory()
 Exp.save_last_gen()
 ```
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1F5gJjzrNHAgRuIzGmenzqiiChtwk2ZXu?usp=sharing) This tutorial walks through Evolution experiments, the basic properties of trajectories (PC structure, etc.) and our improved spherical CMA optimizer. 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1F5gJjzrNHAgRuIzGmenzqiiChtwk2ZXu?usp=sharing) This notebook walks you through Evolution experiments, the basic properties of trajectories (PC structure, etc.) and demonstrates our improved spherical CMA optimizer. 
 
 ## Structure of Repo
 
