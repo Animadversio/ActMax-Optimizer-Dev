@@ -21,8 +21,11 @@ from core.layer_hook_utils import layername_dict, register_hook_by_module_names,
 
 if platform == "linux": # cluster
     # torchhome = "/scratch/binxu/torch/checkpoints"  # CHPC
-    scratchdir = os.environ["SCRATCH1"]
-    torchhome = join(scratchdir, "torch/checkpoints")  # RIS
+    if "ris.wustl.edu" in os.environ['HOSTNAME']:
+        scratchdir = os.environ["SCRATCH1"]
+        torchhome = join(scratchdir, "torch/checkpoints")  # RIS
+    else:
+        torchhome = torch.hub._get_torch_home()
 else:
     if os.environ['COMPUTERNAME'] == 'DESKTOP-9DDE2RH':  # PonceLab-Desktop 3
         torchhome = r"E:\Cluster_Backup\torch"
@@ -30,6 +33,8 @@ else:
         torchhome = r"E:\Cluster_Backup\torch"
     elif os.environ['COMPUTERNAME'] == 'DESKTOP-9LH02U9':  ## Home_WorkStation Victoria
         torchhome = r"E:\Cluster_Backup\torch"
+    else:
+        torchhome = torch.hub._get_torch_home()
 
 
 class TorchScorer:
