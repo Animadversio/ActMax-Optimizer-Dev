@@ -26,13 +26,13 @@ optim = CholeskyCMAES(4096, population_size=40, init_sigma=2.0, Aupdate_freq=10,
 explabel, model_unit = "alexnet_fc8_1", ("alexnet", ".classifier.Linear6", 1)
 Exp = ExperimentEvolution(model_unit, savedir=tmpsavedir, explabel=explabel, optimizer=optim)
 # run evolutions
-Exp.run()
+Exp.run(optim.get_init_pop())
 Exp.visualize_best()
 Exp.visualize_trajectory()
 Exp.save_last_gen()
 ```
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1F5gJjzrNHAgRuIzGmenzqiiChtwk2ZXu?usp=sharing) Demo of Evolution experiments and basic properties (PC structure, etc.)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1F5gJjzrNHAgRuIzGmenzqiiChtwk2ZXu?usp=sharing) This tutorial walks through Evolution experiments, the basic properties of trajectories (PC structure, etc.) and our improved spherical CMA optimizer. 
 
 ## Structure of Repo
 
