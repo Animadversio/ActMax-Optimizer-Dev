@@ -8,6 +8,9 @@ usemathjax: false
 ## Develop High-Performance Evolutionary Algorithms for Online Neuronal Control
 <img src="media\Figure_Teaser-01.png" alt="drawing" width="1000px"/>
 
+If you like a self-paced tutorial reproducing our major results, try out this notebook!  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1F5gJjzrNHAgRuIzGmenzqiiChtwk2ZXu?usp=sharing) (e.g. Evolution experiments with CMA, properties of trajectories, our improved spherical CMA optimizer etc.)
+
+
 ## Rationale 
 
 Activation maximization is a technique popularly used to interpret CNN units: basically, it search for images that maximize activation of the unit. Then these activation maximizing (ActMax) images could be interpreted as the coding content of the unit. 
