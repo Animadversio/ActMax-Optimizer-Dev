@@ -10,7 +10,6 @@ We further found some intriguing geometric properties of the evolution trajector
 Given these analyses, we further developped a new optimizer `SphereCMA` which leverages the spherical geometry of the space and performed better than the original CMA optimizer.
 
 ## Try it out!
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1F5gJjzrNHAgRuIzGmenzqiiChtwk2ZXu?usp=sharing) Demo of Basic Evolution experiments
 
 ```python
 import numpy as np
@@ -32,6 +31,8 @@ Exp.visualize_best()
 Exp.visualize_trajectory()
 Exp.save_last_gen()
 ```
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1F5gJjzrNHAgRuIzGmenzqiiChtwk2ZXu?usp=sharing) Demo of Evolution experiments and basic properties (PC structure, etc.)
 
 ## Structure of Repo
 
