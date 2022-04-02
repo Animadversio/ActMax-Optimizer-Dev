@@ -10,8 +10,10 @@ We further found some intriguing geometric properties of the evolution trajector
 Given these analyses, we further developped a new optimizer `SphereCMA` which leverages the spherical geometry of the space and performed better than the original CMA optimizer.
 
 ## Try it out!
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1NhZ2Kkw3spR8ki9f8ETFbX2pk-032YLV?usp=sharing) Demo of Basic Evolution experiments
 
 ```python
+import numpy as np
 from core.insilico_exps import ExperimentEvolution
 from core.Optimizers import CholeskyCMAES, ZOHA_Sphere_lr_euclid, Genetic, pycma_optimizer
 
