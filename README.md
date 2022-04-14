@@ -12,6 +12,7 @@ Given these analyses, we further developped a new optimizer `SphereCMA` which le
 ## Try it out!
 
 ```python
+import numpy as np
 from core.insilico_exps import ExperimentEvolution
 from core.Optimizers import CholeskyCMAES, ZOHA_Sphere_lr_euclid, Genetic, pycma_optimizer
 
@@ -25,11 +26,13 @@ optim = CholeskyCMAES(4096, population_size=40, init_sigma=2.0, Aupdate_freq=10,
 explabel, model_unit = "alexnet_fc8_1", ("alexnet", ".classifier.Linear6", 1)
 Exp = ExperimentEvolution(model_unit, savedir=tmpsavedir, explabel=explabel, optimizer=optim)
 # run evolutions
-Exp.run()
+Exp.run(optim.get_init_pop())
 Exp.visualize_best()
 Exp.visualize_trajectory()
 Exp.save_last_gen()
 ```
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1F5gJjzrNHAgRuIzGmenzqiiChtwk2ZXu?usp=sharing) This notebook walks you through Evolution experiments, the basic properties of trajectories (PC structure, etc.) and demonstrates our improved spherical CMA optimizer. 
 
 ## Structure of Repo
 
@@ -47,7 +50,7 @@ Exp.save_last_gen()
 <!-- `conda install --channel cma-es cma` 
 `pip install pyswarms`  -->
  
-Versions. `nevergrad 0.4.3` seems to change the default behavior, all our benchmarks were done using the following version of `cma` and `nevergrad`
+**Versions**: `nevergrad 0.4.3` seems to change the default behavior, all our benchmarks were done using the following version of `cma` and `nevergrad`
 
 * `cma.__version__=='3.0.3  $Revision: 4430 $ $Date: 2020-04-21 01:19:04 +0200 (Tue, 21 Apr 2020) $'`
 * `ng.__version__=='0.4.2.post5'`

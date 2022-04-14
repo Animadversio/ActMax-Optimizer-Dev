@@ -18,14 +18,14 @@ default_init_sigma = 3.0
 default_Aupdate_freq = 10
 class ExperimentEvolution:
     def __init__(self, model_unit, max_step=100, imgsize=(227, 227), corner=(0, 0), optimizer=None,
-                 savedir="", explabel="", GAN="fc6"):
+                 savedir="", explabel="", GAN="fc6", device="cuda"):
         self.recording = []
         self.scores_all = []
         self.codes_all = []
         self.generations = []
         self.pref_unit = model_unit
         # AlexNet, VGG, ResNet, DENSE and anything else
-        self.CNNmodel = TorchScorer(model_unit[0])
+        self.CNNmodel = TorchScorer(model_unit[0], device=device)
         self.CNNmodel.select_unit(model_unit)
         # Allow them to choose from multiple optimizers, substitute generator.visualize and render
         if GAN in ["fc6", "fc7", "fc8"]:

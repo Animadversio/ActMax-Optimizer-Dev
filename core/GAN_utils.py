@@ -21,15 +21,12 @@ from core.montage_utils import build_montages
 
 load_urls = False
 if platform == "linux":  # CHPC cluster
-    # homedir = os.path.expanduser('~')
-    # netsdir = os.path.join(homedir, 'Generate_DB/nets')
-    # homedir = "/scratch/binxu"
-    # netsdir = "/scratch/binxu/torch/checkpoints"
-    # homedir = "/scratch1/fs1/crponce"
-    # netsdir = "/scratch1/fs1/crponce/torch/checkpoints"
-    homedir = os.environ["SCRATCH1"]
-    netsdir = join(homedir, "torch/checkpoints")  # CHPC
-    load_urls = True # note it will try to load from $TORCH_HOME\checkpoints\"upconvGAN_%s.pt"%"fc6"
+    if "ris.wustl.edu" in os.environ['HOSTNAME']:
+        homedir = os.environ["SCRATCH1"]
+        netsdir = join(homedir, "torch/checkpoints")  # CHPC
+        load_urls = True # note it will try to load from $TORCH_HOME\checkpoints\"upconvGAN_%s.pt"%"fc6"
+    else:
+        load_urls = True
     # ckpt_path = {"vgg16": "/scratch/binxu/torch/vgg16-397923af.pth"}
 else:
     if os.environ['COMPUTERNAME'] == 'DESKTOP-9DDE2RH':  # PonceLab-Desktop 3

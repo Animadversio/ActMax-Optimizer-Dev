@@ -21,8 +21,11 @@ from core.layer_hook_utils import layername_dict, register_hook_by_module_names,
 
 if platform == "linux": # cluster
     # torchhome = "/scratch/binxu/torch/checkpoints"  # CHPC
-    scratchdir = os.environ["SCRATCH1"]
-    torchhome = join(scratchdir, "torch/checkpoints")  # RIS
+    if "ris.wustl.edu" in os.environ['HOSTNAME']:
+        scratchdir = os.environ["SCRATCH1"]
+        torchhome = join(scratchdir, "torch/checkpoints")  # RIS
+    else:
+        torchhome = torch.hub._get_torch_home()
 else:
     if os.environ['COMPUTERNAME'] == 'DESKTOP-9DDE2RH':  # PonceLab-Desktop 3
         torchhome = r"E:\Cluster_Backup\torch"
@@ -30,6 +33,8 @@ else:
         torchhome = r"E:\Cluster_Backup\torch"
     elif os.environ['COMPUTERNAME'] == 'DESKTOP-9LH02U9':  ## Home_WorkStation Victoria
         torchhome = r"E:\Cluster_Backup\torch"
+    else:
+        torchhome = torch.hub._get_torch_home()
 
 
 class TorchScorer:
@@ -44,7 +49,7 @@ class TorchScorer:
         scores, activations = CNN.score(imgs)
 
     """
-    def __init__(self, model_name, imgpix=227, rawlayername=True):
+    def __init__(self, model_name, imgpix=227, rawlayername=True, device="cuda"):
         self.imgpix = imgpix
         if isinstance(model_name, torch.nn.Module):
             self.model = model_name
@@ -111,7 +116,7 @@ class TorchScorer:
         else:
             raise NotImplementedError("model_name need to be either string or nn.Module")
 
-        self.model.cuda().eval()
+        self.model.to(device).eval()
         for param in self.model.parameters():
             param.requires_grad_(False)
         # self.preprocess = transforms.Compose([transforms.ToPILImage(),
@@ -119,8 +124,9 @@ class TorchScorer:
         #                                       transforms.ToTensor(),
         self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                std=[0.229, 0.224, 0.225])  # Imagenet normalization RGB
-        self.RGBmean = torch.tensor([0.485, 0.456, 0.406]).view([1, 3, 1, 1]).cuda()
-        self.RGBstd = torch.tensor([0.229, 0.224, 0.225]).view([1, 3, 1, 1]).cuda()
+        self.RGBmean = torch.tensor([0.485, 0.456, 0.406]).view([1, 3, 1, 1]).to(device)
+        self.RGBstd = torch.tensor([0.229, 0.224, 0.225]).view([1, 3, 1, 1]).to(device)
+        self.device = device
         self.hooks = []
         self.artiphys = False
         self.record_layers = []
@@ -229,18 +235,18 @@ class TorchScorer:
         # could be modified to support batch processing. Added batch @ July. 10, 2020
         # test and optimize the performance by permute the operators. Use CUDA acceleration from preprocessing
         if type(img) is list: # the following lines have been optimized for speed locally.
-            img_tsr = torch.stack(tuple(torch.from_numpy(im) for im in img)).cuda().float().permute(0, 3, 1, 2) / input_scale
+            img_tsr = torch.stack(tuple(torch.from_numpy(im) for im in img)).to(self.device).float().permute(0, 3, 1, 2) / input_scale
             img_tsr = (img_tsr - self.RGBmean) / self.RGBstd
             resz_out_tsr = F.interpolate(img_tsr, (self.imgpix, self.imgpix), mode='bilinear',
                                          align_corners=True)
             return resz_out_tsr
         elif type(img) is torch.Tensor:
-            img_tsr = (img.cuda() / input_scale - self.RGBmean) / self.RGBstd
+            img_tsr = (img.to(self.device) / input_scale - self.RGBmean) / self.RGBstd
             resz_out_tsr = F.interpolate(img_tsr, (self.imgpix, self.imgpix), mode='bilinear',
                                          align_corners=True)
             return resz_out_tsr
         elif type(img) is np.ndarray and img.ndim == 4:
-            img_tsr = torch.tensor(img / input_scale).float().permute(0,3,1,2).cuda()
+            img_tsr = torch.tensor(img / input_scale).float().permute(0,3,1,2).to(self.device)
             img_tsr = (img_tsr - self.RGBmean) / self.RGBstd
             resz_out_tsr = F.interpolate(img_tsr, (self.imgpix, self.imgpix), mode='bilinear',
                                          align_corners=True)
@@ -298,7 +304,7 @@ class TorchScorer:
             csr_end = min(csr + B, imgn)
             img_batch = self.preprocess(img_tsr[csr:csr_end,:,:,:], input_scale=input_scale)
             with torch.no_grad():
-                self.model(img_batch.cuda())
+                self.model(img_batch.to(self.device))
             if "score" in self.activation: # if score is not there set trace to zero. 
                 scores[csr:csr_end] = self.activation["score"].squeeze().cpu().numpy().squeeze()
 
@@ -319,7 +325,7 @@ class TorchScorer:
 
     def score_tsr_wgrad(self, img_tsr, B=10, input_scale=1.0):
         imgn = img_tsr.shape[0]
-        scores = torch.zeros(img_tsr.shape[0]).cuda()
+        scores = torch.zeros(img_tsr.shape[0]).to(self.device)
         csr = 0  # if really want efficiency, we should use minibatch processing.
         while csr < imgn:
             csr_end = min(csr + B, imgn)
