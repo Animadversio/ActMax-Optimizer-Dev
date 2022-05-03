@@ -107,38 +107,37 @@ PCdata = np.load(join(unitdir, "CholeskyCMAES_PCA_coef_%s_12731.npz"%unitlabel))
 projtraj = meanPCdata['PCcoefs_mean']
 plot_Lissajous(projtraj, K=6, unitlabel="fc8_01", figdir=figdir, figsize=(8, 8))
 #%%
-projtraj = meanPCdata['PCcoefs_mean']
-K = 6
-figh, axs = plt.subplots(K, K, figsize=[8,8], )
-for i in range(K+1):
-    for j in range(i):
-        colorline(projtraj[:,j], projtraj[:,i], ax=axs[i-1, j],
-                  cmap=plt.get_cmap('jet'), linewidth=2, alpha=0.6)
-        # timearr = np.arange(len(projtraj[:,j]))
-        # axs[i-1, j].plot(projtraj[:,j], projtraj[:,i], c="k")
-        # timearr = np.arange(len(projtraj[:,j]))
-        # axs[i-1, j].scatter(projtraj[:,j], projtraj[:,i], c=timearr, marker='o',)
-        if j > 0:
-            axs[i - 1, j].set_yticklabels([])
-        if j == 0:
-            axs[i - 1, j].set_ylabel(f"PC {i+1}")
-        if i < K:
-            axs[i-1, j].set_xticklabels([])
-        if i == K:
-            axs[i - 1, j].set_xlabel(f"PC {j+1}")
-        axs[i-1, j].axis("auto")
-
-for i in range(K):
-        for j in range(i+1, K):
-            axs[i, j].axis("off")
-figh.tight_layout()
-plt.savefig(join(figdir, "Example_Lissajous_curves_fc8_01_time.png"))
-plt.savefig(join(figdir, "Example_Lissajous_curves_fc8_01_time.pdf"))
-plt.show()
+import numpy as np
+from core.insilico_exps import ExperimentEvolution
+from core.Optimizers import CholeskyCMAES, ZOHA_Sphere_lr_euclid, Genetic, pycma_optimizer
+from time import time
+tmpsavedir = "E:\\" # Temporary save directory
+# load optimizer
+optim = ZOHA_Sphere_lr_euclid(4096, population_size=40, select_size=20, lr=1.5, sphere_norm=300)
+optim.lr_schedule(n_gen=75, mode="exp", lim=(50, 7.33) ,)
+explabel, model_unit = "alexnet_fc8_1_sphere", ("alexnet", ".classifier.Linear6", 1)
+Exp = ExperimentEvolution(model_unit, max_step=75, savedir=tmpsavedir, explabel=explabel, optimizer=optim)
+t1 = time()
+Exp.run(optim.get_init_pop())
+print(time() - t1, "sec")  # 10.4 sec for 75 generations! 55.026 +- std 1.700
 #%%
-
-
-
+codes_mean = np.array([Exp.codes_all[Exp.generations == geni, :].mean(axis=0) for geni in range(75)])
+PCcoefs_mean_sphere = PCA(n_components=60).fit_transform(codes_mean)
+plot_Lissajous(PCcoefs_mean_sphere, K=6, unitlabel="fc8_01_sphere_PCmean", figdir=figdir, figsize=(8, 8))
 #%%
-projtraj_sphere = meanPCdata_sphere['PCcoefs_mean']
-plot_Lissajous(projtraj_sphere, K=6, unitlabel="fc8_01_sphere", figdir=figdir, figsize=(8, 8))
+PCcoefs_all_sphere = PCA(n_components=60).fit(Exp.codes_all).transform(codes_mean)
+plot_Lissajous(PCcoefs_all_sphere, K=6, unitlabel="fc8_01_sphere_PCall", figdir=figdir, figsize=(8, 8))
+#%%
+optim = CholeskyCMAES(4096, population_size=40, init_sigma=2.0, Aupdate_freq=10, init_code=np.zeros([1, 4096]))
+explabel, model_unit = "alexnet_fc8_1", ("alexnet", ".classifier.Linear6", 1)
+Exp2 = ExperimentEvolution(model_unit, max_step=75, savedir=tmpsavedir, explabel=explabel, optimizer=optim)
+t1 = time()
+Exp2.run(optim.get_init_pop())
+print(time() - t1, "sec")
+#%%
+codes_mean = np.array([Exp2.codes_all[Exp2.generations == geni, :].mean(axis=0) for geni in range(75)])
+PCcoefs_mean = PCA(n_components=60).fit_transform(codes_mean)
+plot_Lissajous(PCcoefs_mean, K=6, unitlabel="fc8_01_PCmean", figdir=figdir, figsize=(8, 8))
+#%%
+PCcoefs_all = PCA(n_components=60).fit(Exp2.codes_all).transform(codes_mean)
+plot_Lissajous(PCcoefs_all, K=6, unitlabel="fc8_01_PCall", figdir=figdir, figsize=(8, 8))

@@ -13,6 +13,7 @@ Given these analyses, we further developped a new optimizer `SphereCMA` which le
 
 ```python
 import numpy as np
+from time import time
 from core.insilico_exps import ExperimentEvolution
 from core.Optimizers import CholeskyCMAES, ZOHA_Sphere_lr_euclid, Genetic, pycma_optimizer
 
@@ -26,7 +27,10 @@ optim = CholeskyCMAES(4096, population_size=40, init_sigma=2.0, Aupdate_freq=10,
 explabel, model_unit = "alexnet_fc8_1", ("alexnet", ".classifier.Linear6", 1)
 Exp = ExperimentEvolution(model_unit, savedir=tmpsavedir, explabel=explabel, optimizer=optim)
 # run evolutions
+t1 = time()
 Exp.run(optim.get_init_pop())
+t2 = time()
+print(t2 - t1, "sec")  
 Exp.visualize_best()
 Exp.visualize_trajectory()
 Exp.save_last_gen()
