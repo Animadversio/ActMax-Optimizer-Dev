@@ -151,18 +151,19 @@ class TorchScorer:
         """
         if unit is None and unitmask is None:  # if no unit is given, output the full tensor. 
             def hook(model, input, output): 
-                self.activation[name] = output if ingraph else output.detach()
+                self.activation[name] = output.clone() if ingraph else output.clone().detach()
 
         elif unitmask is not None:
             # has a unit mask, which could be an index list or a tensor mask same shape of the 3 dimensions.
             def hook(model, input, output): 
-                out = output if ingraph else output.detach()
+                out = output.clone() if ingraph else output.clone().detach()
                 Bsize = out.shape[0]
                 self.activation[name] = out.view([Bsize, -1])[:, unitmask.reshape(-1)]
 
         else:
-            def hook(model, input, output): 
-                out = output if ingraph else output.detach()
+            def hook(model, input, output):
+                #   Add clone so that future inplace relu does not overwrite nonrelu unit scores.
+                out = output.clone() if ingraph else output.clone().detach()
                 if len(output.shape) == 4: 
                     self.activation[name] = out[:, unit[0], unit[1], unit[2]]
                 elif len(output.shape) == 2: 
