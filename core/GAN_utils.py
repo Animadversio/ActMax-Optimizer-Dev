@@ -58,16 +58,39 @@ model_urls = {"pool5" : "https://onedrive.live.com/download?cid=9CFFF6BCB39F6829
     "fc7": "https://onedrive.live.com/download?cid=9CFFF6BCB39F6829&resid=9CFFF6BCB39F6829%2145338&authkey=AJ0R-daUAVYjQIw",
     "fc8": "https://onedrive.live.com/download?cid=9CFFF6BCB39F6829&resid=9CFFF6BCB39F6829%2145340&authkey=AKIfNk7s5MGrRkU"}
 
+
+def download_file(url, local_path):
+    import requests
+    from tqdm import tqdm
+    response = requests.get(url, stream=True)
+    file_size = int(response.headers.get('content-length', 0))
+    chunk_size = 1024
+    progress_bar = tqdm(total=file_size, unit='iB', unit_scale=True)
+
+    with open(local_path, 'wb') as file:
+        for chunk in response.iter_content(chunk_size=chunk_size):
+            progress_bar.update(len(chunk))
+            file.write(chunk)
+
+    progress_bar.close()
+    if file_size != 0 and progress_bar.n != file_size:
+        print("ERROR, something went wrong.")
+
+
 def load_statedict_from_online(name="fc6"):
-    torchhome = torch.hub._get_torch_home()
+    import requests
+    from requests.exceptions import HTTPError
+    torchhome = torch.hub.get_dir()
     ckpthome = join(torchhome, "checkpoints")
     os.makedirs(ckpthome, exist_ok=True)
     filepath = join(ckpthome, "upconvGAN_%s.pt"%name)
     if not os.path.exists(filepath):
-        torch.hub.download_url_to_file(model_urls[name], filepath, hash_prefix=None,
-                                   progress=True)
+        print(f"downloading weights of `upconvGAN_{name}.pt` to {filepath}")
+        download_file(model_urls[name], filepath)
+
     SD = torch.load(filepath)
     return SD
+
 
 class View(nn.Module):
     def __init__(self, *shape):
